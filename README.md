@@ -1,7 +1,5 @@
 # CS452 Team 5: Spark Connect Client for Go
 
-Andreas Papandreou and Varnavas Tryfonos. Instructor: Dr Haris Volos.
-
 A reproducible CloudLab deployment of Apache Spark with Spark Connect and
 HDFS, Go programs (Spark Connect Go client) for WordCount and Inverted Index,
 and strong/weak scaling experiments compared with an equivalent PySpark
@@ -9,24 +7,26 @@ baseline.
 
 ## Repository layout
 
-| path | contents | owner |
-| --- | --- | --- |
-| `cmd/wordcount`, `cmd/invertedindex` | Go programs that run the jobs through Spark Connect | Varnavas |
-| `cmd/verify` | checks a Spark result against the reference implementation | Varnavas |
-| `internal/textproc` | record format and tokenization rules (shared definition) | Varnavas |
-| `internal/jobs` | the Spark Connect query plans; Spark integration tests | Varnavas |
-| `internal/reference` | single-machine WordCount / Inverted Index used as the oracle | Varnavas |
-| `internal/cli` | flags, timing and JSON-lines metrics for the benchmark runs | Varnavas |
-| `testdata/small` | hand-checked correctness corpus and expected outputs | Varnavas |
-| `data/lists` | reproducible Project Gutenberg book selections | Varnavas |
-| `scripts/data` | dataset selection, download, preprocessing, scaling | Varnavas |
-| `scripts/hdfs` | HDFS installation/configuration, health check, dataset loading | Varnavas |
-| CloudLab profile, Spark and Spark Connect setup | to be added | Andreas |
-| PySpark baseline, benchmark scripts, plots, report | to be added | both |
+| path | contents |
+| --- | --- |
+| `cmd/wordcount`, `cmd/invertedindex` | Go programs that run the jobs through Spark Connect |
+| `cmd/verify` | checks a Spark result against the reference implementation |
+| `internal/textproc` | record format and tokenization rules (shared definition) |
+| `internal/jobs` | the Spark Connect query plans; Spark integration tests |
+| `internal/reference` | single-machine WordCount / Inverted Index used as the oracle |
+| `internal/cli` | flags, timing and JSON-lines metrics for the benchmark runs |
+| `testdata/small` | hand-checked correctness corpus and expected outputs |
+| `data/lists` | reproducible Project Gutenberg book selections |
+| `scripts/data` | dataset selection, download, preprocessing, scaling |
+| `scripts/hdfs` | HDFS installation/configuration, health check, dataset loading |
+| `scripts/spark` | Spark master, worker and Spark Connect server setup |
+| `scripts/cloudlab` | one-command deployment over SSH and cluster check |
+| PySpark baseline, benchmark scripts, plots, report | to be added |
 
 Documentation: [docs/workloads.md](docs/workloads.md) (semantics, running,
-correctness testing) and [docs/datasets-and-hdfs.md](docs/datasets-and-hdfs.md)
-(dataset choice and pipeline, HDFS placement and scripts).
+correctness testing), [docs/datasets-and-hdfs.md](docs/datasets-and-hdfs.md)
+(dataset choice and pipeline, HDFS placement and scripts) and
+[docs/deployment.md](docs/deployment.md) (CloudLab cluster).
 
 ## Quick start
 
@@ -44,7 +44,7 @@ bin/invertedindex -input file://$PWD/testdata/small/corpus -dump
 
 ## Status (week 9)
 
-Done (Varnavas):
+Done:
 
 * Datasets selected and documented; `classics-60` and `sample-2000` lists
   generated from the Gutenberg catalog; download, preprocessing and
@@ -59,10 +59,14 @@ Done (Varnavas):
   Go, results stored in HDFS and equal to the reference on all 85,015 terms
   (details in docs/workloads.md).
 
+* CloudLab cluster deployed and checked with one command: Spark master, 3
+  workers, Spark Connect and HDFS, with both Go jobs correct on the small corpus
+  (details in docs/deployment.md).
+
 Next:
 
-* Integrate `scripts/hdfs` into the CloudLab profile once it is available,
-  load `classics-60` and `sample-2000`, and run `cmd/verify` on the cluster.
+* Load `classics-60` and `sample-2000` on the cluster with `scripts/hdfs` and
+  run `cmd/verify` there.
 * Fix the per-worker data size for weak scaling after the first cluster runs.
 * PySpark baseline with the same semantics (docs/workloads.md) and the
   benchmark driver that collects the `-metrics` JSON lines.
