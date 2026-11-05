@@ -87,6 +87,12 @@ install_hadoop() {
 }
 
 write_config() {
+  # DataNodes report their LAN address, the name Spark uses for its executors,
+  # otherwise Spark cannot schedule tasks next to their blocks.
+  local nn_ip local_ip
+  nn_ip=$(getent ahostsv4 "$NAMENODE" | awk 'NR == 1 {print $1}')
+  local_ip=$(ip -4 -o route get "$nn_ip" | sed -E 's/.* src ([0-9.]+).*/\1/')
+
   make_dir "$HDFS_DATA_ROOT"
   mkdir -p "$HDFS_DATA_ROOT"/{name,data,logs,pids,tmp}
 
@@ -107,6 +113,7 @@ EOF
   <property><name>dfs.blocksize</name><value>$HDFS_BLOCK_SIZE</value></property>
   <property><name>dfs.namenode.name.dir</name><value>file://$HDFS_DATA_ROOT/name</value></property>
   <property><name>dfs.datanode.data.dir</name><value>file://$HDFS_DATA_ROOT/data</value></property>
+  <property><name>dfs.datanode.hostname</name><value>$local_ip</value></property>
   <!-- Listen on every interface; clients reach the NameNode through $NAMENODE. -->
   <property><name>dfs.namenode.rpc-bind-host</name><value>0.0.0.0</value></property>
   <property><name>dfs.namenode.http-bind-host</name><value>0.0.0.0</value></property>
