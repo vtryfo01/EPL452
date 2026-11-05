@@ -1,0 +1,9 @@
+# Downloaded and generated datasets (re-created by scripts/data)
+data/raw/
+data/processed/
+
+# Build outputs and run artifacts
+/bin/
+*.exe
+*.jsonl
+__pycache__/

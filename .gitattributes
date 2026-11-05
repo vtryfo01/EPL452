@@ -1,0 +1,4 @@
+# Keep LF endings everywhere: the shell scripts run on Linux (CloudLab) and
+# the test corpus and expected outputs are compared byte for byte.
+* text=auto eol=lf
+testdata/** -text
