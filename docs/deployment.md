@@ -1,0 +1,80 @@
+# Cluster deployment
+
+Code: `scripts/spark`, `scripts/cloudlab`.
+
+One command sets up HDFS and Spark on a CloudLab experiment over SSH and checks
+the result. The class experiment only lets us choose the number of nodes, so
+the setup runs over SSH instead of from a custom CloudLab profile.
+
+## Layout
+
+| node | runs |
+| --- | --- |
+| `node0` | Spark master (7077, UI 8080), Spark Connect server (15002), HDFS NameNode (9000, UI 9870), Go programs |
+| `node1` ... `nodeN` | Spark worker, one executor using all cores, HDFS DataNode |
+
+Spark and HDFS traffic uses the experiment LAN (`10.10.1.x`). The public
+interface only accepts SSH and CloudLab's event service, because Spark and HDFS
+have no authentication. To open a UI, use a tunnel:
+`ssh -L 8080:node0:8080 user@<node0 host>`.
+
+## Deploy
+
+Requirements on your machine: `ssh`, `tar`, and the experiment's SSH key in an
+agent. The first host must be `node0`, as shown in the experiment's List View.
+
+```sh
+scripts/cloudlab/deploy.sh user@<node0 host> user@<node1 host> user@<node2 host> ...
+```
+
+The script copies the repository to `~/EPL452` on every node, installs Java,
+builds the Go programs on `node0`, starts the daemons and runs
+`check_cluster.sh`. It fails if any step fails.
+
+| flag | effect |
+| --- | --- |
+| none | keeps the data, restarts Spark, starts any missing HDFS daemon |
+| `--clean` | first removes all previous installs and **all data in HDFS** |
+
+## Check
+
+`scripts/cloudlab/check_cluster.sh <workers>` runs on `node0`, also on its own. It
+requires all DataNodes live, HDFS writable, all Spark workers alive, both Go jobs
+equal to `testdata/small/expected` when run through Spark Connect, and an
+executor on every worker.
+
+## Use
+
+```sh
+ssh user@<node0 host>
+cd ~/EPL452
+export SPARK_REMOTE=sc://node0:15002
+bin/wordcount -input hdfs://node0:9000/datasets/corpus -show 5
+```
+
+## Limits
+
+* Data lives on the root disk, in `/mydata`, with about 50 GB free per worker.
+  With replication 2 this limits the input to roughly 75 GB on 3 workers, before
+  shuffle files and results.
+* Executor memory is 75% of the RAM of `node0`, so all nodes must be the same type.
+* After a reboot run `deploy.sh` again: the daemons and the firewall rule do not
+  survive it. This path has not been tested with a real reboot.
+
+## Tested
+
+On the class experiment: `node0` and 3 workers, each with 8 ARM cores and 62 GB
+RAM, on Ubuntu 22.04.
+
+| test | result | time |
+| --- | --- | --- |
+| first deployment on new nodes (Go was still built off the cluster) | passed | 8 min 27 s |
+| `--clean` deployment, twice | passed | 7 min 50 s, 6 min 16 s |
+| daemons killed on `node0` and a worker, then re-run without `--clean` | passed, file in HDFS kept | 2 min 57 s |
+| one Spark worker stopped | `check_cluster.sh` fails as it should | |
+| 1.5 GB WordCount scan | 24 of 24 tasks `NODE_LOCAL`, 8 on each worker | |
+| Spark and HDFS ports from outside the experiment | blocked, SSH open | |
+
+`--clean` keeps the Java packages, so the current scripts have not yet run on
+completely new nodes. The first job after a Spark restart took about 22 s on the
+small corpus; the cause is unknown, so benchmarks should not time that job.
