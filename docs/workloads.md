@@ -1,7 +1,6 @@
 # Workloads: WordCount and Inverted Index in Go
 
-Owner: Varnavas Tryfonos. Code: `cmd/wordcount`, `cmd/invertedindex`,
-`cmd/verify`, `internal/`.
+Code: `cmd/wordcount`, `cmd/invertedindex`, `cmd/verify`, `internal/`.
 
 Both programs use the Apache Spark Connect Go client
 (`github.com/apache/spark-connect-go`, pinned in `go.mod`). The Go program only
@@ -123,5 +122,6 @@ Go client on Windows):
 * a deliberately wrong reference corpus makes `verify` fail with the
   differing totals and terms.
 
-Not yet done: runs on the CloudLab cluster (waiting for the profile), and
-any timing measurements (the local numbers are not meaningful).
+On the CloudLab cluster only the small corpus has been run (docs/deployment.md).
+Not yet done: the real datasets on the cluster, and any timing measurements (the
+local numbers are not meaningful).

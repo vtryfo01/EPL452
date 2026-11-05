@@ -1,6 +1,6 @@
 # Datasets and HDFS
 
-Owner: Varnavas Tryfonos. Code: `scripts/data`, `scripts/hdfs`, `data/lists`.
+Code: `scripts/data`, `scripts/hdfs`, `data/lists`.
 
 ## Dataset choice
 
@@ -64,7 +64,7 @@ or non-ASCII character and tabs into spaces, collapse spaces, drop empty lines.
 
 ## HDFS
 
-Proposed placement (to confirm while integrating with the CloudLab profile):
+Placement (see docs/deployment.md, which runs these scripts on the cluster):
 NameNode on the master node (`node0`, next to the Spark master and the Spark
 Connect server), one DataNode on every worker machine, replication 2, 128 MiB
 blocks. Executors then read most blocks locally. For strong scaling we suggest
@@ -87,19 +87,16 @@ scripts/hdfs/load_hdfs.sh data/processed/classics-60
 supports Java 8/11 at runtime; Spark 4 keeps its own Java 17), downloads Hadoop
 3.4.3 into `/opt/hadoop`, writes `core-site.xml`/`hdfs-site.xml`, formats the
 NameNode once and starts the daemons with `hdfs --daemon start` (no SSH between
-nodes needed). It is idempotent, so the profile can run it at every boot.
+nodes needed). It is idempotent, so it can run again after a restart.
 All settings can be overridden with environment variables (see the header of
 the script). `load_hdfs.sh` compares the size of every file with the local
 copy and requires `fsck` to report the directory HEALTHY.
 
-What the CloudLab profile needs to provide (Andreas):
-
-* experiment-LAN host names (`node0`, `node1`, ...) resolvable on every node;
-* a large local filesystem mounted at `/mydata` (the default root disk is too
-  small), or `HDFS_DATA_ROOT` pointing elsewhere: the largest weak-scaling
-  input times the replication factor, plus the results;
-* calls to `setup_hdfs.sh` as the experiment user on each node, after the
-  network is up, then `check_hdfs.sh <workers>`.
+`scripts/cloudlab/deploy.sh` runs `setup_hdfs.sh` on each node and then
+`check_hdfs.sh <workers>`. On the class experiment the LAN names `node0`,
+`node1`, ... resolve on every node, and `/mydata` is a directory on the root
+disk, with about 50 GB free per worker. DataNodes report their LAN address, the
+name Spark uses for executors, so that tasks can run next to their blocks.
 
 Spark reads `hdfs://node0:9000/...` URIs with the Hadoop client bundled in the
 Spark distribution, so the Spark configuration needs no HDFS settings.
