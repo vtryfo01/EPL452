@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install, configure and (re)start Spark on one node.
 #
-#   setup_spark.sh master <master-host>   # standalone master
+#   setup_spark.sh master <master-host>   # standalone master and Spark Connect server
 #   setup_spark.sh worker <master-host>   # worker
 #
 # Run as the experiment user. Needs Java 17 (installed by deploy.sh).
@@ -65,12 +65,15 @@ spark.master                       spark://$MASTER:7077
 spark.local.dir                    $DATA/local
 spark.driver.memory                $DRIVER_MEMORY
 spark.executor.memory              $EXECUTOR_MEMORY
+spark.connect.grpc.binding.address $local_ip
 CONF
 
 case $ROLE in
   master)
+    "$SPARK_HOME/sbin/stop-connect-server.sh" >/dev/null 2>&1 || true
     "$SPARK_HOME/sbin/stop-master.sh" >/dev/null 2>&1 || true
     "$SPARK_HOME/sbin/start-master.sh"
+    "$SPARK_HOME/sbin/start-connect-server.sh"
     ;;
   worker)
     "$SPARK_HOME/sbin/stop-worker.sh" >/dev/null 2>&1 || true
