@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # Deploy HDFS and Spark on a CloudLab experiment over SSH, then check the cluster.
 #
-#   deploy.sh user@node0 user@node1 [user@node2 ...]
+#   deploy.sh [--clean] user@node0 user@node1 [user@node2 ...]
 #
 # The first host must be node0 (master); the others are the workers.
-# A re-run keeps the data, restarts the Spark daemons and starts any missing
-# HDFS daemon.
+# --clean first removes everything a previous deployment left on the nodes,
+# including the data in HDFS. Without it, a re-run keeps the data, restarts the
+# Spark daemons and starts any missing HDFS daemon.
 set -euo pipefail
 
+clean=false
+if [[ ${1:-} == --clean ]]; then clean=true; shift; fi
 (($# >= 2)) || { sed -n '4p' "$0" | sed 's/^# *//'; exit 2; }
 master=$1
 shift
@@ -31,6 +34,11 @@ each() {
   return $status
 }
 
+clean_node() {
+  on "$1" "pkill -f 'org.apache.[s]park' ; pkill -f 'org.apache.[h]adoop' ; sleep 2 ;
+    sudo -n rm -rf /opt/spark /opt/hadoop /opt/go /mydata/spark /mydata/hdfs ~/EPL452 ~/go /tmp/spark-* /tmp/hadoop-* /tmp/go1* /etc/profile.d/hadoop.sh"
+}
+
 prepare_node() {
   tar -C "$repo" -cz scripts testdata cmd internal go.mod go.sum | "${SSH[@]}" "$1" 'rm -rf ~/EPL452 && mkdir ~/EPL452 && tar -xz -C ~/EPL452'
   on "$1" 'sudo -n apt-get -o DPkg::Lock::Timeout=300 update -q >/dev/null &&
@@ -45,6 +53,11 @@ start_worker() {
 # Every node must already resolve node0, and the first host must be it.
 on "$master" "ip -4 -o addr | grep -qw \$(getent ahostsv4 $MASTER_NAME | awk 'NR == 1 {print \$1}')" ||
   { echo "deploy: $master is not $MASTER_NAME" >&2; exit 1; }
+
+if $clean; then
+  clean_node "$master"
+  each clean_node
+fi
 
 prepare_node "$master"
 each prepare_node
