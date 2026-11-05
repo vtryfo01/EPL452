@@ -60,7 +60,7 @@ start_worker() {
 
 # Every node must already resolve node0, and the first host must be it.
 on "$master" "ip -4 -o addr | grep -qw \$(getent ahostsv4 $MASTER_NAME | awk 'NR == 1 {print \$1}')" ||
-  { echo "deploy: $master is not $MASTER_NAME" >&2; exit 1; }
+  { echo "deploy: cannot reach $master, or it is not $MASTER_NAME" >&2; exit 1; }
 
 if $clean; then
   clean_node "$master"
