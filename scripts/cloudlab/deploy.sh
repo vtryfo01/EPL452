@@ -40,7 +40,7 @@ clean_node() {
 }
 
 prepare_node() {
-  tar -C "$repo" -cz scripts testdata cmd internal go.mod go.sum | "${SSH[@]}" "$1" 'rm -rf ~/EPL452 && mkdir ~/EPL452 && tar -xz -C ~/EPL452'
+  tar -C "$repo" -cz scripts testdata data/lists cmd internal go.mod go.sum | "${SSH[@]}" "$1" 'rm -rf ~/EPL452 && mkdir ~/EPL452 && tar -xz -C ~/EPL452'
   on "$1" 'sudo -n apt-get -o DPkg::Lock::Timeout=300 update -q >/dev/null &&
     sudo -n env DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y -q openjdk-11-jre-headless openjdk-17-jre-headless >/dev/null'
   # Spark and HDFS have no authentication: on the public interface allow only
