@@ -3,14 +3,15 @@
 A processed dataset is a directory of part files plus a manifest:
 
     part-00000.tsv   one record per line: <doc_id>\t<text>
-    part-00001.tsv   a document never spans two part files
+    part-00001.tsv   a long document may continue in the next part file
     ...
     _MANIFEST.json   provenance, sizes and checksums
 
 Spark (and internal/reference) skip files whose name starts with "_", so the
 directory can be copied to HDFS as is and passed to the jobs with -input.
-Part files are cut close to the HDFS block size so that Spark gets one input
-split per part instead of thousands of tiny files.
+Part files are filled up to the HDFS block size (128 MiB) and never past it,
+so each one is stored as a single block and read by one Spark task, instead of
+thousands of tiny files or a tiny second block per file.
 """
 
 import datetime
@@ -80,16 +81,21 @@ class PartWriter:
         return sum(p["bytes"] for p in self.parts) + current
 
     def start_doc(self, doc_id, **info):
-        """Start a new document; switch part file if the current one is full."""
+        """Start a new document."""
         self._end_doc()
-        if self._file is None or self._part["bytes"] >= self.part_size:
+        if self._file is None:
             self._new_part()
         self._doc = {"id": doc_id, "records": 0, "bytes": 0, **info}
         self._part["docs"] += 1
 
     def write(self, text):
-        """Write one record of the current document."""
+        """Write one record of the current document. A part file never grows
+        past part_size (unless a single record is larger): the document then
+        continues in the next part file."""
         data = f"{self._doc['id']}\t{text}\n".encode("utf-8")
+        if self._part["bytes"] and self._part["bytes"] + len(data) > self.part_size:
+            self._new_part()
+            self._part["docs"] += 1
         self._file.write(data)
         self._hash.update(data)
         self._doc["records"] += 1

@@ -4,11 +4,15 @@ dataset, for the weak-scaling experiments.
 
   # 1 GiB per worker for 4 workers
   scale_dataset.py --src data/processed/sample-2000 --size 4G --out data/processed/weak-4
+  # exactly 15 complete copies
+  scale_dataset.py --src data/processed/sample-2000 --copies 15 --out data/processed/weak-3
 
 Copy 0 keeps the original document ids; copy k renames every document to
 "<id>.r<k>" so that the copies are distinct documents for the inverted index.
-Whole documents are written until the output reaches --size, so the result
-is at most one document larger than requested.
+With --size, whole documents are written until the output reaches the size,
+so the result is at most one document larger than requested. With --copies,
+the output is exactly that many complete copies, which cmd/verify -copies can
+check against the reference of the source.
 
 Replication keeps the vocabulary and the shape of the term distribution of
 the source (realistic skew for the shuffle), while the amount of work grows
@@ -28,20 +32,24 @@ from dslib import DEFAULT_PART_SIZE, PartWriter, human_size, parse_size, read_ma
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--src", required=True, help="processed source dataset")
-    p.add_argument("--size", required=True, help="target size, e.g. 512M, 4G")
+    amount = p.add_mutually_exclusive_group(required=True)
+    amount.add_argument("--size", help="target size, e.g. 512M, 4G")
+    amount.add_argument("--copies", type=int, help="write exactly this many complete copies")
     p.add_argument("--out", required=True, help="output directory (must be empty or missing)")
     p.add_argument("--name", help="dataset name (default: basename of --out)")
     p.add_argument("--part-size", default=DEFAULT_PART_SIZE, help="target part file size (default %(default)s)")
     args = p.parse_args()
+    if args.copies is not None and args.copies < 1:
+        sys.exit("--copies must be at least 1")
 
     src = read_manifest(args.src)
     if src["totals"]["bytes"] == 0:
         sys.exit(f"{args.src} is empty")
-    target = parse_size(args.size)
+    target = parse_size(args.size) if args.size else float("inf")
     writer = PartWriter(args.out, parse_size(args.part_size))
 
     copies = complete = 0
-    for copy in itertools.count():
+    for copy in range(args.copies) if args.copies else itertools.count():
         if writer.bytes >= target:
             break
         copies += 1
@@ -63,7 +71,7 @@ def main():
         "kind": "scaled",
         "from": src["name"],
         "from_bytes": src["totals"]["bytes"],
-        "target_bytes": target,
+        "target_bytes": target if args.size else None,
         "copies": copies,
         "complete_copies": complete,
     }, keep_docs=False)

@@ -76,8 +76,8 @@ class PipelineTest(unittest.TestCase):
                 with open(os.path.join(raw, f"pg{book}.txt"), "w", encoding="utf-8") as f:
                     f.write(BOOK)
             out = os.path.join(tmp, "processed")
-            # A tiny part size forces one document per part file.
-            self.run_script(os.path.join(HERE, "preprocess.py"), "--raw", raw, "--out", out, "--part-size", "10")
+            # pg7 is 72 bytes and pg12 74: a 75-byte part holds one of them.
+            self.run_script(os.path.join(HERE, "preprocess.py"), "--raw", raw, "--out", out, "--part-size", "75")
 
             manifest = dslib.read_manifest(out)
             self.assertEqual(manifest["totals"]["docs"], 2)
@@ -91,6 +91,17 @@ class PipelineTest(unittest.TestCase):
             for line in records:
                 self.assertEqual(line.count("\t"), 1)
                 line.encode("ascii")  # raises if not ASCII
+
+            # A part never grows past the part size, except for a single larger
+            # record; a document then continues in the next part.
+            small = os.path.join(tmp, "small-parts")
+            self.run_script(os.path.join(HERE, "preprocess.py"), "--raw", raw, "--out", small, "--part-size", "40")
+            small_manifest = dslib.read_manifest(small)
+            self.assertEqual(small_manifest["totals"]["docs"], 2)
+            self.assertEqual(small_manifest["totals"]["records"], 4)
+            self.assertGreater(small_manifest["totals"]["parts"], 2)
+            for part in small_manifest["parts"]:
+                self.assertTrue(part["bytes"] <= 40 or part["records"] == 1, part)
 
             # Just over 2 copies (the ".r1" ids of copy 2 add 3 bytes per
             # record): the third copy is cut after its first document.
@@ -109,6 +120,15 @@ class PipelineTest(unittest.TestCase):
                             docs.append(doc)
             self.assertEqual(docs, ["pg7", "pg12", "pg7.r1", "pg12.r1", "pg7.r2"])
             self.assertEqual(json.dumps(scaled_manifest["totals"]["docs"]), "5")
+
+            # --copies writes exactly that many complete copies.
+            copied = os.path.join(tmp, "copied")
+            self.run_script(os.path.join(HERE, "scale_dataset.py"), "--src", out, "--copies", "3", "--out", copied)
+            copied_manifest = dslib.read_manifest(copied)
+            self.assertEqual(copied_manifest["source"]["copies"], 3)
+            self.assertEqual(copied_manifest["source"]["complete_copies"], 3)
+            self.assertEqual(copied_manifest["totals"]["docs"], 6)
+            self.assertEqual(copied_manifest["totals"]["records"], 3 * manifest["totals"]["records"])
 
 
 if __name__ == "__main__":
