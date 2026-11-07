@@ -189,6 +189,28 @@ func (ix *Index) TotalPostings() int64 {
 	return n
 }
 
+// ReplicaID returns the id of document id in copy number copy of a dataset
+// made by scripts/data/scale_dataset.py: copy 0 keeps the id, copy k > 0
+// renames it to "<id>.r<k>".
+func ReplicaID(id string, copy int) string {
+	if copy == 0 {
+		return id
+	}
+	return id + ".r" + strconv.Itoa(copy)
+}
+
+// Replicated returns the ids of docs in copies complete copies, sorted.
+func Replicated(docs []string, copies int) []string {
+	out := make([]string, 0, len(docs)*copies)
+	for _, d := range docs {
+		for c := 0; c < copies; c++ {
+			out = append(out, ReplicaID(d, c))
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
 // Map returns the index as term -> sorted document ids.
 func (ix *Index) Map() map[string][]string {
 	m := make(map[string][]string, len(ix.Postings))
@@ -289,17 +311,26 @@ func DiffIndex(want, got map[string][]string, max int) []string {
 		g, inGot := got[term]
 		switch {
 		case !inGot:
-			diffs = append(diffs, fmt.Sprintf("%q: missing (want %v)", term, w))
+			diffs = append(diffs, fmt.Sprintf("%q: missing (want %s)", term, docList(w)))
 		case !inWant:
-			diffs = append(diffs, fmt.Sprintf("%q: unexpected (got %v)", term, g))
+			diffs = append(diffs, fmt.Sprintf("%q: unexpected (got %s)", term, docList(g)))
 		case strings.Join(w, ",") != strings.Join(g, ","):
-			diffs = append(diffs, fmt.Sprintf("%q: got %v, want %v", term, g, w))
+			diffs = append(diffs, fmt.Sprintf("%q: got %s, want %s", term, docList(g), docList(w)))
 		}
 		if len(diffs) == max {
 			break
 		}
 	}
 	return diffs
+}
+
+// docList formats a document list for a message, shortened when it is long.
+func docList(docs []string) string {
+	const show = 6
+	if len(docs) <= show {
+		return fmt.Sprint(docs)
+	}
+	return fmt.Sprintf("%d docs %v...", len(docs), docs[:show])
 }
 
 func sortedKeys[V any](m map[string]V) []string {

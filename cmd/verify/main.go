@@ -7,8 +7,15 @@
 // frequent terms, a seeded random sample of terms, and terms that must be
 // absent.
 //
+// With -copies k the input is k complete copies of the -local corpus, made by
+// scripts/data/scale_dataset.py --copies k: every count and document frequency
+// is k times the reference, and every document appears in each copy. A large
+// weak-scaling input is then checked without a local copy of it.
+//
 //	verify -job wordcount -input hdfs://node0:9000/datasets/gutenberg-100 \
 //	    -local data/processed/gutenberg-100 [-result hdfs://node0:9000/results/wordcount]
+//	verify -job invertedindex -input hdfs://node0:9000/datasets/weak-3 \
+//	    -local data/processed/sample-2000 -copies 15
 package main
 
 import (
@@ -43,10 +50,14 @@ func main() {
 	mode := flag.String("mode", "auto", "full, sample, or auto (full when the result has at most 100000 terms)")
 	sampleSize := flag.Int("sample", 50, "number of random terms checked in sample mode")
 	seed := flag.Uint64("seed", 452, "seed for the random sample")
+	copies := flag.Int("copies", 1, "the input is this many complete copies of -local (scale_dataset.py --copies)")
 	flag.Parse()
 
 	if *job != "wordcount" && *job != "invertedindex" {
 		log.Fatal("-job must be wordcount or invertedindex")
+	}
+	if *copies < 1 {
+		log.Fatal("-copies must be at least 1")
 	}
 	if *input == "" {
 		log.Fatal("-input is required")
@@ -60,7 +71,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	v, err := newVerifier(ctx, *remote, *job, *input, *local, *result, *format)
+	v, err := newVerifier(ctx, *remote, *job, *input, *local, *result, *format, *copies)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,16 +97,17 @@ func main() {
 type verifier struct {
 	job    string
 	df     sql.DataFrame
-	counts reference.WordCounts
-	index  *reference.Index
+	counts reference.WordCounts // already multiplied by copies
+	index  *reference.Index     // of one copy; see wantDocs
+	copies int
 }
 
-func newVerifier(ctx context.Context, remote, job, input, local, result, format string) (*verifier, error) {
+func newVerifier(ctx context.Context, remote, job, input, local, result, format string, copies int) (*verifier, error) {
 	files, err := reference.InputFiles(local)
 	if err != nil {
 		return nil, err
 	}
-	v := &verifier{job: job}
+	v := &verifier{job: job, copies: copies}
 	log.Printf("computing the reference %s of %s", job, local)
 	if job == "wordcount" {
 		v.counts, err = reference.WordCount(files)
@@ -104,6 +116,12 @@ func newVerifier(ctx context.Context, remote, job, input, local, result, format 
 	}
 	if err != nil {
 		return nil, err
+	}
+	if copies > 1 {
+		log.Printf("expecting %d complete copies of %s", copies, local)
+		for t := range v.counts {
+			v.counts[t] *= int64(copies)
+		}
 	}
 
 	spark, err := sql.NewSessionBuilder().Remote(remote).Build(ctx)
@@ -143,7 +161,21 @@ func (v *verifier) full(ctx context.Context) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return reference.DiffIndex(v.index.Map(), got, 20), nil
+	want := make(map[string][]string, len(v.index.Postings))
+	for t := range v.index.Postings {
+		want[t] = v.wantDocs(t)
+	}
+	return reference.DiffIndex(want, got, 20), nil
+}
+
+// wantDocs returns the expected sorted documents of term in the input, or
+// nil if the term does not occur.
+func (v *verifier) wantDocs(term string) []string {
+	docs := v.index.DocsOf(term)
+	if docs == nil || v.copies == 1 {
+		return docs
+	}
+	return reference.Replicated(docs, v.copies)
 }
 
 // sample compares the totals and a subset of the terms.
@@ -155,7 +187,7 @@ func (v *verifier) sample(ctx context.Context, n int, seed uint64) ([]string, er
 		want = jobs.Stats{Terms: int64(len(v.counts)), Total: v.counts.Tokens()}
 		stats = jobs.CountStats
 	} else {
-		want = jobs.Stats{Terms: int64(len(v.index.Postings)), Total: v.index.TotalPostings()}
+		want = jobs.Stats{Terms: int64(len(v.index.Postings)), Total: v.index.TotalPostings() * int64(v.copies)}
 		stats = jobs.IndexStats
 	}
 	got, err := stats(ctx, v.df)
@@ -192,7 +224,7 @@ func (v *verifier) sample(ctx context.Context, n int, seed uint64) ([]string, er
 	}
 	wantIndex := make(map[string][]string)
 	for _, t := range terms {
-		if docs := v.index.DocsOf(t); docs != nil {
+		if docs := v.wantDocs(t); docs != nil {
 			wantIndex[t] = docs
 		}
 	}

@@ -2,9 +2,11 @@ package reference
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -98,6 +100,45 @@ func TestInvertedIndexNonContiguousDocuments(t *testing.T) {
 	}
 }
 
+// TestReplicated checks that the index of a corpus written as complete copies
+// (the naming of scale_dataset.py) is the source index with Replicated docs,
+// and that every count is multiplied by the number of copies.
+func TestReplicated(t *testing.T) {
+	records := [][2]string{{"pg10", "fox dog"}, {"pg1", "fox"}, {"pg2", "dog dog"}}
+	const copies = 3
+	var data strings.Builder
+	for c := 0; c < copies; c++ {
+		for _, r := range records {
+			fmt.Fprintf(&data, "%s\t%s\n", ReplicaID(r[0], c), r[1])
+		}
+	}
+	path := filepath.Join(t.TempDir(), "part-00000.tsv")
+	if err := os.WriteFile(path, []byte(data.String()), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ix, err := InvertedIndex([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string][]string{
+		"fox": Replicated([]string{"pg1", "pg10"}, copies),
+		"dog": Replicated([]string{"pg10", "pg2"}, copies),
+	}
+	if got := want["fox"]; strings.Join(got, ",") != "pg1,pg1.r1,pg1.r2,pg10,pg10.r1,pg10.r2" {
+		t.Fatalf("Replicated = %q", got)
+	}
+	if diffs := DiffIndex(want, ix.Map(), 10); len(diffs) > 0 {
+		t.Fatal(diffs)
+	}
+	counts, err := WordCount([]string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diffs := DiffCounts(map[string]int64{"fox": 2 * copies, "dog": 3 * copies}, counts, 10); len(diffs) > 0 {
+		t.Fatal(diffs)
+	}
+}
+
 func TestWriteReadRoundTrip(t *testing.T) {
 	counts := map[string]int64{"the": 6, "2026": 1}
 	var buf bytes.Buffer
@@ -135,5 +176,15 @@ func TestDiff(t *testing.T) {
 	}
 	if diffs := DiffCounts(want, got, 1); len(diffs) != 1 {
 		t.Fatalf("DiffCounts with max 1 = %v", diffs)
+	}
+
+	long := Replicated([]string{"d1", "d2", "d3"}, 3)
+	diffs = DiffIndex(map[string][]string{"x": long[:8], "y": {"d1"}}, map[string][]string{"x": long}, 0)
+	wantDiffs := []string{
+		`"x": got 9 docs [d1 d1.r1 d1.r2 d2 d2.r1 d2.r2]..., want 8 docs [d1 d1.r1 d1.r2 d2 d2.r1 d2.r2]...`,
+		`"y": missing (want [d1])`,
+	}
+	if !reflect.DeepEqual(diffs, wantDiffs) {
+		t.Fatalf("DiffIndex =\n%q\nwant\n%q", diffs, wantDiffs)
 	}
 }
