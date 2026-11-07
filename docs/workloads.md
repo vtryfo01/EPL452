@@ -101,15 +101,46 @@ excludes connecting and reading the result back for `-show`/`-stats`.
    count / postings) plus the 10 most frequent terms, 50 seeded random terms and
    terms that must be absent. With `-result` it checks a stored benchmark output
    instead of re-running the job.
+4. **Weak-scaling inputs**: these are *k* complete copies of `sample-2000`
+   (`scale_dataset.py --copies k`), too large to keep a local copy of. With
+   `-copies k`, `verify` computes the reference of `sample-2000` and expects
+   every count and document frequency multiplied by *k*, and each document
+   list to contain every copy of each document (`pg84`, `pg84.r1`, ...).
 
    ```sh
    bin/verify -job wordcount -input hdfs://node0:9000/datasets/classics-60 -local data/processed/classics-60
    bin/verify -job invertedindex -input $IN -local data/processed/sample-2000 -result hdfs://node0:9000/results/ii
+   bin/verify -job invertedindex -input hdfs://node0:9000/datasets/weak-3 -local /mydata/datasets/processed/sample-2000 -copies 15
    ```
 
-## Verified so far (week 9)
+   On the cluster, `scripts/data/cluster_datasets.sh` and
+   `scripts/data/weak_datasets.sh` run these checks for every dataset (see
+   docs/datasets-and-hdfs.md).
 
-On one machine (Spark 4.0.5 Spark Connect server in local mode and a
+## Verified so far (week 10)
+
+On the CloudLab cluster (`node0` and 3 workers, `m510` nodes with 8 cores /
+16 hardware threads and 62 GB RAM, deployed as in docs/deployment.md):
+
+* `classics-60`: both jobs equal to the reference on all 85,015 terms
+  (`verify -mode full`);
+* `sample-2000` (1,999 books, 777.9 MiB, 129,670,403 tokens, 541,397 terms,
+  11,980,430 postings): both jobs equal to the reference on all 541,397 terms
+  (`verify -mode full`);
+* `weak-1` to `weak-3` (5, 10 and 15 copies of `sample-2000`): totals exactly
+  5, 10 and 15 times the reference and the spot checks pass (`verify -copies`);
+  on 3 copies of `classics-60`, `-copies 3` passes in full and `-copies 2`
+  fails, as it should.
+
+First timings, one run of each job with `-format noop` on 3 workers after a
+warm-up job, used to choose the weak-scaling size (not benchmark results):
+
+| input | WordCount | Inverted Index |
+| --- | --- | --- |
+| `weak-1` (3.9 GiB) | 28 s | 106 s |
+| `weak-3` (11.9 GiB) | 88 s | 269 s |
+
+Earlier, on one machine (Spark 4.0.5 Spark Connect server in local mode and a
 single-node HDFS 3.4.3 set up with `scripts/hdfs`, both under Ubuntu 22.04;
 Go client on Windows):
 
@@ -121,7 +152,3 @@ Go client on Windows):
 * sampled checks on a 3.3 MiB replicated dataset pass;
 * a deliberately wrong reference corpus makes `verify` fail with the
   differing totals and terms.
-
-On the CloudLab cluster only the small corpus has been run (docs/deployment.md).
-Not yet done: the real datasets on the cluster, and any timing measurements (the
-local numbers are not meaningful).

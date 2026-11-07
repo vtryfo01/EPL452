@@ -42,7 +42,7 @@ bin/wordcount -input file://$PWD/testdata/small/corpus -show 5
 bin/invertedindex -input file://$PWD/testdata/small/corpus -dump
 ```
 
-## Status (week 9)
+## Status (week 10)
 
 Done:
 
@@ -62,11 +62,16 @@ Done:
 * CloudLab cluster deployed and checked with one command: Spark master, 3
   workers, Spark Connect and HDFS, with both Go jobs correct on the small corpus
   (details in docs/deployment.md).
+* Real datasets on the cluster (`scripts/data/cluster_datasets.sh`):
+  `classics-60` and `sample-2000` (1,999 books, 778 MiB) loaded into HDFS, and
+  both Go jobs equal to the reference on every term (85,015 and 541,397).
+* Weak-scaling inputs (`scripts/data/weak_datasets.sh 5`): `weak-1` to
+  `weak-3`, 5, 10 and 15 complete copies of `sample-2000` (about 4 GiB per
+  worker), checked with `verify -copies` (docs/datasets-and-hdfs.md).
 
 Next:
 
-* Load `classics-60` and `sample-2000` on the cluster with `scripts/hdfs` and
-  run `cmd/verify` there.
-* Fix the per-worker data size for weak scaling after the first cluster runs.
 * PySpark baseline with the same semantics (docs/workloads.md) and the
   benchmark driver that collects the `-metrics` JSON lines.
+* Strong scaling (`weak-3` on 1 to 3 workers), weak scaling (`weak-n` on *n*
+  workers) and Go vs PySpark runs, then the plots.
