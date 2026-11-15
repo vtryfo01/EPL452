@@ -52,6 +52,13 @@ export SPARK_REMOTE=sc://node0:15002
 bin/wordcount -input hdfs://node0:9000/datasets/corpus -show 5
 ```
 
+## Number of workers
+
+For strong scaling, run `scripts/spark/use_workers.sh N` on `node0`. It restarts
+the Spark Connect server so that jobs use N workers, one executor with all
+cores on each. HDFS keeps its DataNodes on all workers, so the input stays where
+it is. Without N it goes back to all workers, which `check_cluster.sh` expects.
+
 ## Limits
 
 * Data lives on the root disk, in `/mydata`, with about 50 GB free per worker.
@@ -75,6 +82,9 @@ RAM, on Ubuntu 22.04.
 | 1.5 GB WordCount scan | 24 of 24 tasks `NODE_LOCAL`, 8 on each worker | |
 | Spark and HDFS ports from outside the experiment | blocked, SSH open | |
 
+`use_workers.sh` was tested on one machine with 2 workers (1 and 2 workers,
+WordCount correct each time), not yet on the cluster.
+
 `--clean` keeps the Java packages, so the current scripts have not yet run on
 completely new nodes. The first job after a Spark restart took about 22 s on the
-small corpus; the cause is unknown, so benchmarks should not time that job.
+small corpus the cause is unknown, so benchmarks should not time that job.
