@@ -20,6 +20,8 @@ if [ "$N" -lt 1 ] || [ "$N" -gt "$ALIVE" ]; then
   exit 1
 fi
 
+# Spark refuses to start the server when SPARK_REMOTE is set.
+unset SPARK_REMOTE
 /opt/spark/sbin/stop-connect-server.sh
 /opt/spark/sbin/start-connect-server.sh --conf spark.executor.cores=$CORES --conf spark.cores.max=$((N * CORES))
 
