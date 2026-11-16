@@ -3,8 +3,7 @@
 Code: `scripts/spark`, `scripts/cloudlab`.
 
 One command sets up HDFS and Spark on a CloudLab experiment over SSH and checks
-the result. The class experiment only lets us choose the number of nodes, so
-the setup runs over SSH instead of from a custom CloudLab profile.
+the result.
 
 ## Layout
 
