@@ -1,6 +1,6 @@
 # Cluster deployment
 
-Code: `scripts/spark`, `scripts/cloudlab`.
+Code: `profile.py`, `scripts/spark`, `scripts/cloudlab`.
 
 One command sets up HDFS and Spark on a CloudLab experiment over SSH and checks
 the result.
@@ -16,6 +16,13 @@ Spark and HDFS traffic uses the experiment LAN (`10.10.1.x`). The public
 interface only accepts SSH and CloudLab's event service, because Spark and HDFS
 have no authentication. To open a UI, use a tunnel:
 `ssh -L 8080:node0:8080 user@<node0 host>`.
+
+## Experiment
+
+In the CloudLab portal, create a profile from `profile.py` (Experiments, Create
+Experiment Profile) and start an experiment from it. Choose the number of nodes
+(`node0` plus the workers) and the hardware type (`m400` by default). All nodes
+run Ubuntu 22.04 on one LAN, `node0` to `nodeN` at `10.10.1.1` onwards.
 
 ## Deploy
 
@@ -69,21 +76,18 @@ it is. Without N it goes back to all workers, which `check_cluster.sh` expects.
 
 ## Tested
 
-On the class experiment: `node0` and 3 workers, each with 8 ARM cores and 62 GB
-RAM, on Ubuntu 22.04.
+On `m400` nodes: `node0` and 3 workers, each with 8 ARM cores and 62 GB RAM, on
+Ubuntu 22.04.
 
 | test | result | time |
 | --- | --- | --- |
-| first deployment on new nodes (Go was still built off the cluster) | passed | 8 min 27 s |
+| first deployment on new nodes from `profile.py` | passed | 10 min 26 s |
 | `--clean` deployment, twice | passed | 7 min 50 s, 6 min 16 s |
 | daemons killed on `node0` and a worker, then re-run without `--clean` | passed, file in HDFS kept | 2 min 57 s |
 | one Spark worker stopped | `check_cluster.sh` fails as it should | |
 | 1.5 GB WordCount scan | 24 of 24 tasks `NODE_LOCAL`, 8 on each worker | |
 | Spark and HDFS ports from outside the experiment | blocked, SSH open | |
+| `use_workers.sh` with 1, 2 and 3 workers | executors on that many workers, WordCount correct | |
 
-`use_workers.sh` was tested on one machine with 2 workers (1 and 2 workers,
-WordCount correct each time), not yet on the cluster.
-
-`--clean` keeps the Java packages, so the current scripts have not yet run on
-completely new nodes. The first job after a Spark restart took about 22 s on the
-small corpus the cause is unknown, so benchmarks should not time that job.
+The first job after a Spark restart took about 22 s on the small corpus. The
+cause is unknown, so benchmarks should not time that job.
