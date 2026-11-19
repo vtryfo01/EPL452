@@ -68,6 +68,8 @@ scripts/data/cluster_datasets.sh      # classics-60 and sample-2000 (about 45 mi
 scripts/data/weak_datasets.sh 5       # weak-1 to weak-3: 5, 10 and 15 copies of sample-2000
 ```
 
+On an experiment started from our CloudLab profile, its `datasets` parameter
+runs both scripts automatically after the setup (docs/deployment.md).
 `cluster_datasets.sh` downloads from a Gutenberg mirror (the main site blocks
 bulk downloads) and takes the few books the mirror lacks from the main site.
 Both scripts can be re-run and end with a summary of sizes and check times.

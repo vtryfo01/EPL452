@@ -19,9 +19,9 @@ baseline.
 | `data/lists` | reproducible Project Gutenberg book selections |
 | `scripts/data` | dataset selection, download, preprocessing, scaling |
 | `scripts/hdfs` | HDFS installation/configuration, health check, dataset loading |
-| `profile.py` | CloudLab profile: `node0` and the workers on one LAN |
+| `profile.py` | CloudLab profile: `node0` and the workers on one LAN, set up automatically at boot |
 | `scripts/spark` | Spark master, worker and Spark Connect server setup, number of workers |
-| `scripts/cloudlab` | one-command deployment over SSH and cluster check |
+| `scripts/cloudlab` | setup at boot (`startup.sh`) or over SSH (`deploy.sh`), cluster check |
 | PySpark baseline, benchmark scripts, plots, report | to be added |
 
 Documentation: [docs/workloads.md](docs/workloads.md) (semantics, running,

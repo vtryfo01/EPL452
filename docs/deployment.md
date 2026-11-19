@@ -2,8 +2,10 @@
 
 Code: `profile.py`, `scripts/spark`, `scripts/cloudlab`.
 
-One command sets up HDFS and Spark on a CloudLab experiment over SSH and checks
-the result.
+An experiment started from our CloudLab profile sets itself up: every node
+installs and starts its part of HDFS and Spark at boot, `node0` checks the
+cluster and can then prepare the datasets. On other experiments one command,
+`deploy.sh`, does the same setup over SSH.
 
 ## Layout
 
@@ -19,22 +21,57 @@ have no authentication. To open a UI, use a tunnel:
 
 ## Experiment
 
-In the CloudLab portal, create a profile from `profile.py` (Experiments, Create
-Experiment Profile) and start an experiment from it. Choose the number of nodes
-(`node0` plus the workers) and the hardware type (`m400` by default). All nodes
-run Ubuntu 22.04 on one LAN, `node0` to `nodeN` at `10.10.1.1` onwards.
+The profile is `profile.py` in this repository. Create it once in the CloudLab
+portal (Experiments, Create Experiment Profile, Git Repo) with the URL
+`https://github.com/vtryfo01/EPL452`. CloudLab clones the repository without
+logging in, so it must be public. On the profile page, Update pulls the latest
+commit (or add the GitHub webhook shown there to update on every push).
+
+Parameters when starting an experiment:
+
+| parameter | meaning |
+| --- | --- |
+| nodes | `node0` plus the workers (default 4) |
+| hardware | node type, all nodes the same (default `m400`) |
+| datasets | `none`; `base`: `classics-60` and `sample-2000` (about 45 min); `all` (default): also `weak-1` to `weak-N` (about 1.5 h in total) |
+
+All nodes run Ubuntu 22.04 on one LAN, `node0` to `nodeN` at `10.10.1.1`
+onwards. At every boot each node runs `scripts/cloudlab/startup.sh` from the
+clone in `/local/repository`, as the experiment user:
+
+1. copies the repository to `~/EPL452` and runs `prepare_node.sh` (Java, firewall);
+2. a worker waits for the NameNode and the Spark master on `node0`, then starts
+   its DataNode and Spark worker;
+3. `node0` starts the NameNode, the Spark master and Spark Connect, builds the
+   Go programs, waits (up to 30 min) for every worker and runs
+   `check_cluster.sh`;
+4. `node0` prepares the chosen datasets with `cluster_datasets.sh` and
+   `weak_datasets.sh 5` (docs/datasets-and-hdfs.md). This happens once: a
+   reboot restarts the daemons but does not repeat it.
+
+Progress on each node:
+
+```sh
+cat ~/startup.status     # running: <step>, OK, or FAILED: <step>
+tail -f ~/startup.log
+```
+
+The cluster is ready when `node0` says `OK`, or `running: preparing ...` if
+you only need the cluster.
 
 ## Deploy
 
-Requirements on your machine: `ssh`, `tar`, and the experiment's SSH key in an
-agent. The first host must be `node0`, as shown in the experiment's List View.
+For experiments not made from the profile (such as the class experiment), or to
+start again with `--clean`. On a profile experiment, wait until
+`~/startup.status` says `OK` first. Requirements on your machine: `ssh`, `tar`,
+and the experiment's SSH key in an agent. The first host must be `node0`, as shown in the experiment's List View.
 
 ```sh
 scripts/cloudlab/deploy.sh user@<node0 host> user@<node1 host> user@<node2 host> ...
 ```
 
-The script copies the repository to `~/EPL452` on every node, installs Java,
-builds the Go programs on `node0`, starts the daemons and runs
+The script copies the repository to `~/EPL452` on every node, runs
+`prepare_node.sh`, builds the Go programs on `node0`, starts the daemons and runs
 `check_cluster.sh`. It fails if any step fails.
 
 | flag | effect |
@@ -71,8 +108,9 @@ it is. Without N it goes back to all workers, which `check_cluster.sh` expects.
   With replication 2 this limits the input to roughly 75 GB on 3 workers, before
   shuffle files and results.
 * Executor memory is 75% of the RAM of `node0`, so all nodes must be the same type.
-* After a reboot run `deploy.sh` again: the daemons and the firewall rule do not
-  survive it. This path has not been tested with a real reboot.
+* The daemons and the firewall rule do not survive a reboot. On a profile
+  experiment `startup.sh` sets them up again at boot; otherwise run `deploy.sh`
+  again. Neither has been tested with a real reboot.
 
 ## Tested
 
