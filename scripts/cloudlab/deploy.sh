@@ -41,16 +41,7 @@ clean_node() {
 
 prepare_node() {
   tar -C "$repo" -cz scripts testdata data/lists cmd internal go.mod go.sum | "${SSH[@]}" "$1" 'rm -rf ~/EPL452 && mkdir ~/EPL452 && tar -xz -C ~/EPL452'
-  on "$1" 'sudo -n apt-get -o DPkg::Lock::Timeout=300 update -q >/dev/null &&
-    sudo -n env DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y -q openjdk-11-jre-headless openjdk-17-jre-headless >/dev/null'
-  # Spark and HDFS have no authentication: on the public interface allow only
-  # SSH and CloudLab's event service.
-  on "$1" "pub=\$(ip -4 route show default | awk '{print \$5; exit}')
-    lan=\$(ip -4 -o route get \$(getent ahostsv4 $MASTER_NAME | awk 'NR == 1 {print \$1}') | sed -nE 's/.* dev ([^ ]+).*/\1/p')
-    if [[ \$pub != \$lan ]]; then
-      rule=(INPUT -i \$pub -p tcp --syn -m multiport ! --dports 22,16505 -j DROP)
-      sudo -n iptables -C \"\${rule[@]}\" 2>/dev/null || sudo -n iptables -I \"\${rule[@]}\"
-    fi"
+  on "$1" "~/EPL452/scripts/cloudlab/prepare_node.sh $MASTER_NAME"
 }
 
 start_worker() {
