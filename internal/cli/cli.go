@@ -37,6 +37,7 @@ const DefaultRemote = "sc://localhost:15002"
 // Metrics is appended as one JSON line to the -metrics file.
 type Metrics struct {
 	Job       string      `json:"job"`
+	Client    string      `json:"client"` // "go"; the PySpark baseline writes "pyspark"
 	Label     string      `json:"label,omitempty"`
 	Remote    string      `json:"remote"`
 	Input     string      `json:"input"`
@@ -113,7 +114,7 @@ func run(ctx context.Context, job Job, args []string, stdout io.Writer) error {
 		return err
 	}
 
-	m := Metrics{Job: job.Name, Label: *label, Remote: *remote, Input: *input, Start: time.Now().UTC()}
+	m := Metrics{Job: job.Name, Client: "go", Label: *label, Remote: *remote, Input: *input, Start: time.Now().UTC()}
 	switch {
 	case write:
 		m.Action, m.Output, m.Format = "write", *output, *format

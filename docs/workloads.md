@@ -1,6 +1,7 @@
 # Workloads: WordCount and Inverted Index in Go
 
-Code: `cmd/wordcount`, `cmd/invertedindex`, `cmd/verify`, `internal/`.
+Code: `cmd/wordcount`, `cmd/invertedindex`, `cmd/verify`, `internal/`; the
+PySpark baseline is in `baseline/` (docs/benchmarks.md).
 
 Both programs use the Apache Spark Connect Go client
 (`github.com/apache/spark-connect-go`, pinned in `go.mod`). The Go program only
@@ -29,8 +30,8 @@ the same in Java, Go and Python. Defined once in `internal/textproc`.
 **Inverted Index.** `(term, docs, doc_freq)`: the sorted, distinct ids of the
 documents containing the term, and their number.
 
-Spark plan built by `internal/jobs` (the PySpark baseline should be the same
-five lines):
+Spark plan built by `internal/jobs`; the PySpark baseline
+(`baseline/sparkjobs.py`) is these five lines:
 
 ```python
 lines = spark.read.format("text").load(input)
@@ -73,11 +74,14 @@ Flags common to both programs:
 | `-show n` | print the first `n` rows (by count / doc_freq, then term) |
 | `-dump` | print the whole result as sorted TSV on stdout (small inputs only) |
 | `-stats` | also print the number of terms and the total count / postings |
-| `-metrics f`, `-label s` | append `{"job", "label", "input", "action", "start", "elapsed_ms", "stats", ...}` to `f` |
+| `-metrics f`, `-label s` | append `{"job", "client", "label", "input", "action", "start", "elapsed_ms", "stats", ...}` to `f` |
 
 `elapsed_ms` is the wall-clock time of the action seen by the client (write,
 collect or show), i.e. the end-to-end job time including Spark scheduling. It
 excludes connecting and reading the result back for `-show`/`-stats`.
+`client` is `go`. The PySpark baseline takes the same flags and writes the
+same JSON lines with `client` `pyspark`:
+`/opt/pyspark/bin/python baseline/wordcount.py -input $IN ...`.
 
 ## Correctness tests
 

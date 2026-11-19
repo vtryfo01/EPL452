@@ -1,0 +1,2 @@
+# PySpark baseline client; the version must match the Spark Connect server.
+pyspark-client==4.0.5

@@ -40,7 +40,7 @@ clean_node() {
 }
 
 prepare_node() {
-  tar -C "$repo" -cz scripts testdata data/lists cmd internal go.mod go.sum | "${SSH[@]}" "$1" 'rm -rf ~/EPL452 && mkdir ~/EPL452 && tar -xz -C ~/EPL452'
+  tar -C "$repo" -cz scripts testdata data/lists baseline cmd internal go.mod go.sum | "${SSH[@]}" "$1" 'rm -rf ~/EPL452 && mkdir ~/EPL452 && tar -xz -C ~/EPL452'
   on "$1" "~/EPL452/scripts/cloudlab/prepare_node.sh $MASTER_NAME"
 }
 
