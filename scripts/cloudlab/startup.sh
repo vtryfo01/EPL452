@@ -13,7 +13,8 @@
 # "running: <step>", "OK" or "FAILED: <step>".
 #
 # Datasets: base = classics-60 and sample-2000 (cluster_datasets.sh), all =
-# also weak-1 .. weak-<workers> (weak_datasets.sh 5).
+# also weak-1 .. weak-<workers> (weak_datasets.sh 5). Last, node0 installs the
+# PySpark baseline (setup_pyspark.sh).
 # Settings: MASTER [node0], STARTUP_TIMEOUT [1800 s to wait for the other nodes],
 # DATA_ROOT [/mydata/datasets], HADOOP_HOME [/opt/hadoop].
 set -euo pipefail
@@ -117,4 +118,7 @@ if [[ $DATASETS == all && ! -e $DATA_ROOT/.weak-done ]]; then
   "$repo/scripts/data/weak_datasets.sh" 5 "$WORKERS"
   touch "$DATA_ROOT/.weak-done"
 fi
+
+begin "installing the PySpark baseline"
+"$repo/scripts/bench/setup_pyspark.sh"
 status OK

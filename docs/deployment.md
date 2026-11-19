@@ -47,7 +47,9 @@ clone in `/local/repository`, as the experiment user:
    `check_cluster.sh`;
 4. `node0` prepares the chosen datasets with `cluster_datasets.sh` and
    `weak_datasets.sh 5` (docs/datasets-and-hdfs.md). This happens once: a
-   reboot restarts the daemons but does not repeat it.
+   reboot restarts the daemons but does not repeat it;
+5. `node0` installs the PySpark baseline (`setup_pyspark.sh`,
+   docs/benchmarks.md).
 
 Progress on each node:
 

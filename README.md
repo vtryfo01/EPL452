@@ -22,12 +22,15 @@ baseline.
 | `profile.py` | CloudLab profile: `node0` and the workers on one LAN, set up automatically at boot |
 | `scripts/spark` | Spark master, worker and Spark Connect server setup, number of workers |
 | `scripts/cloudlab` | setup at boot (`startup.sh`) or over SSH (`deploy.sh`), cluster check |
-| PySpark baseline, benchmark scripts, plots, report | to be added |
+| `baseline` | PySpark baseline: the same jobs, flags and metrics through the PySpark Spark Connect client |
+| `scripts/bench` | PySpark client setup, benchmark driver, summary tables |
+| plots, report | to be added |
 
 Documentation: [docs/workloads.md](docs/workloads.md) (semantics, running,
 correctness testing), [docs/datasets-and-hdfs.md](docs/datasets-and-hdfs.md)
-(dataset choice and pipeline, HDFS placement and scripts) and
-[docs/deployment.md](docs/deployment.md) (CloudLab cluster).
+(dataset choice and pipeline, HDFS placement and scripts),
+[docs/deployment.md](docs/deployment.md) (CloudLab cluster) and
+[docs/benchmarks.md](docs/benchmarks.md) (PySpark baseline, benchmark runs).
 
 ## Quick start
 
@@ -69,10 +72,12 @@ Done:
 * Weak-scaling inputs (`scripts/data/weak_datasets.sh 5`): `weak-1` to
   `weak-3`, 5, 10 and 15 complete copies of `sample-2000` (about 4 GiB per
   worker), checked with `verify -copies` (docs/datasets-and-hdfs.md).
+* PySpark baseline with the same plans, flags and metrics as the Go programs,
+  tested against the same expected outputs, and a benchmark driver for strong
+  scaling, weak scaling and Go vs PySpark with a summary of the results
+  (docs/benchmarks.md).
 
 Next:
 
-* PySpark baseline with the same semantics (docs/workloads.md) and the
-  benchmark driver that collects the `-metrics` JSON lines.
 * Strong scaling (`weak-3` on 1 to 3 workers), weak scaling (`weak-n` on *n*
-  workers) and Go vs PySpark runs, then the plots.
+  workers) and Go vs PySpark runs on the cluster, then the plots.
