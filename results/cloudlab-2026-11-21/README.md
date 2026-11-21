@@ -37,7 +37,8 @@ logs are UTC (Cyprus is UTC+2).
 ## Results
 
 All tables are in `summary.md` (medians of 4 runs) and `summary.csv` (also
-mean, standard deviation, minimum and maximum).
+mean, standard deviation, minimum and maximum), and the figures in `plots/`:
+`strong-scaling.png`, `weak-scaling.png` and `go-vs-pyspark.png`.
 
 **Go and PySpark take the same time.** The medians differ by at most 2%
 (PySpark / Go between 0.98 and 1.01) in all 10 configurations. Both clients
@@ -81,3 +82,4 @@ effect instead.
 | `pipeline.sh`, `pipeline2.sh`, `rep4.sh` | the scripts run by hand on `node0` |
 | `cluster-info.txt` | sizes in HDFS and `spark-defaults.conf` |
 | `summary.md`, `summary.csv` | `scripts/bench/summarize.py results/runs.jsonl --csv summary.csv` |
+| `plots/*.png` | `scripts/bench/plot.py results/runs.jsonl --out plots` |

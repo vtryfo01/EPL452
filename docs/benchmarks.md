@@ -103,5 +103,16 @@ efficiency T(1) / (n T(n)) on `weak-W`) and the weak-scaling table (efficiency
 T(`weak-1` on 1) / T(`weak-n` on n)). The CSV has the number of runs, median,
 mean, standard deviation, minimum and maximum of every configuration.
 
+The figures for the report (needs `pip install matplotlib`):
+
+```sh
+python3 scripts/bench/plot.py results/runs.jsonl --out results/plots
+```
+
+`strong-scaling.png` and `weak-scaling.png` have one column per job, with the
+median run time (and the range of the runs) above and the speedup or the
+efficiency, next to the ideal, below; `go-vs-pyspark.png` shows the runs of
+both clients in every configuration as the difference from the median of Go.
+
 Tests (no cluster needed): `python3 scripts/bench/test_summarize.py`,
 `python3 baseline/test_sparkjobs.py`.

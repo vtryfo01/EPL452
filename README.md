@@ -81,9 +81,9 @@ Done:
   runs, `weak-n` = 2n copies of `sample-2000`): Go and PySpark within 2% of
   each other everywhere; on 3 workers a strong-scaling speedup of 2.48
   (WordCount) and 2.71 (Inverted Index) and a weak-scaling efficiency of 0.86
-  and 0.89 (results/cloudlab-2026-11-21).
+  and 0.89 (results/cloudlab-2026-11-21, figures in its `plots`).
 
 Next:
 
-* The plots and the report; if there is cluster time, the same runs with the
-  planned 5 copies per worker.
+* The report; if there is cluster time, the same runs with the planned 5
+  copies per worker.
