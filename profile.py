@@ -13,8 +13,8 @@ pc.defineParameter("nodes", "Number of nodes (master + workers)", portal.Paramet
 pc.defineParameter("hardware", "Hardware type", portal.ParameterType.NODETYPE, "m400")
 pc.defineParameter("datasets", "Datasets to prepare after the setup", portal.ParameterType.STRING, "all",
                    [("none", "None"),
-                    ("base", "classics-60 and sample-2000 (about 45 min)"),
-                    ("all", "Also the weak-scaling inputs weak-1 to weak-N (about 1.5 h)")])
+                    ("base", "classics-60 and sample-2000 (about 20 min)"),
+                    ("all", "Also the weak-scaling inputs weak-1 to weak-N (about 1 h)")])
 params = pc.bindParameters()
 if params.nodes < 2:
     pc.reportError(portal.ParameterError("Need at least 2 nodes", ["nodes"]))

@@ -33,7 +33,7 @@ Parameters when starting an experiment:
 | --- | --- |
 | nodes | `node0` plus the workers (default 4) |
 | hardware | node type, all nodes the same (default `m400`) |
-| datasets | `none`; `base`: `classics-60` and `sample-2000` (about 45 min); `all` (default): also `weak-1` to `weak-N` (about 1.5 h in total) |
+| datasets | `none`; `base`: `classics-60` and `sample-2000` (about 20 min); `all` (default): also `weak-1` to `weak-N` (about 1 h in total) |
 
 All nodes run Ubuntu 22.04 on one LAN, `node0` to `nodeN` at `10.10.1.1`
 onwards. At every boot each node runs `scripts/cloudlab/startup.sh` from the

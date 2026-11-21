@@ -20,7 +20,7 @@ sample, and every list is committed with titles.
 | --- | --- | --- |
 | `testdata/small/corpus` | hand-written, 4 documents | exact expected outputs, edge cases (see docs/workloads.md) |
 | `classics-60` | `data/lists/classics-60.txt`, 60 well-known books (55.8 MiB processed, 928,771 records) | full comparison against the reference; first cluster runs |
-| `sample-2000` | `data/lists/sample-2000.txt`, 2000 random English texts (seed 452); 1,999 downloaded, #32857 has no plain-text version (777.9 MiB, 12,089,988 records) | base corpus for scaling |
+| `sample-2000` | `data/lists/sample-2000.txt`, 2000 random English texts (seed 452); 1,999 downloaded, #32857 has no plain-text version (777.9 MiB, 12,089,988 records); #12664 is only on the main site, without it 1,998 (777.8 MiB, 12,088,635 records) | base corpus for scaling |
 | `weak-<n>` | `scale_dataset.py --copies 5n` on `sample-2000` (about 4 GiB per worker) | weak scaling with *n* workers; `weak-3` also for strong scaling |
 
 For weak scaling, `weak-<n>` is 5*n* complete copies of `sample-2000` (copy
@@ -44,7 +44,7 @@ worker, of the 56 GB free on each.
 # 1. Choose books (the catalog is downloaded once to data/raw/pg_catalog.csv)
 python3 scripts/data/select_gutenberg.py --count 2000 --seed 452 --out data/lists/sample-2000.txt
 
-# 2. Download them (2 s between requests; resumable; failures in _MISSING.txt)
+# 2. Download them (2 s between requests; resumable; books not found in _MISSING.txt)
 python3 scripts/data/fetch_gutenberg.py data/lists/classics-60.txt --out data/raw/gutenberg
 
 # 3. Clean and pack into ~128 MiB part files with a manifest
@@ -64,15 +64,18 @@ HDFS and check both Go jobs on them (run after `scripts/cloudlab/deploy.sh`;
 data under `/mydata/datasets`):
 
 ```sh
-scripts/data/cluster_datasets.sh      # classics-60 and sample-2000 (about 45 min, mostly the download)
+scripts/data/cluster_datasets.sh      # classics-60 and sample-2000 (about 20 min)
 scripts/data/weak_datasets.sh 5       # weak-1 to weak-3: 5, 10 and 15 copies of sample-2000
 ```
 
 On an experiment started from our CloudLab profile, its `datasets` parameter
 runs both scripts automatically after the setup (docs/deployment.md).
 `cluster_datasets.sh` downloads from a Gutenberg mirror (the main site blocks
-bulk downloads) and takes the few books the mirror lacks from the main site.
-Both scripts can be re-run and end with a summary of sizes and check times.
+bulk downloads), 8 books at a time (`DOWNLOAD_JOBS`; one at a time took over
+2 hours in November 2026). It takes the few books that mirror lacks from a
+second mirror and then from the main site, which often refuses cloud machines
+(HTTP 503); books that no source has are left out and listed. Both scripts can
+be re-run and end with a summary of sizes and check times.
 
 Processed layout: `part-NNNNN.tsv` files of `<doc_id>\t<text>` records (empty
 lines dropped; a long document may continue in the next part file, which the

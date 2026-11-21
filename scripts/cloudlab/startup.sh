@@ -8,9 +8,10 @@
 # profile.py runs it from /local/repository at every boot, so the daemons come
 # back after a reboot; the datasets are prepared only once. It copies the
 # repository to ~/EPL452 (files that exist only there, such as results, are
-# kept) and runs as the experiment user, switching to that user if started as
-# root. Progress is in ~/startup.log, and ~/startup.status holds
-# "running: <step>", "OK" or "FAILED: <step>".
+# kept) and runs as the experiment's creator, switching to that user when
+# CloudLab starts it as geniuser or root, so everything is in the home
+# directory the creator logs in to. Progress is in ~/startup.log, and
+# ~/startup.status holds "running: <step>", "OK" or "FAILED: <step>".
 #
 # Datasets: base = classics-60 and sample-2000 (cluster_datasets.sh), all =
 # also weak-1 .. weak-<workers> (weak_datasets.sh 5). Last, node0 installs the
@@ -30,12 +31,16 @@ HADOOP_HOME=${HADOOP_HOME:-/opt/hadoop}
 export DATA_ROOT HADOOP_HOME
 src=$(cd "$(dirname "$0")/../.." && pwd)
 
-# The HDFS daemons must not run as root: run as the experiment's creator.
-if ((EUID == 0)); then
-  user=$(geni-get user_urn 2>/dev/null | awk -F+ '{print $NF}') || true
-  [[ -n $user ]] || user=$(cat /var/emulab/boot/swapper 2>/dev/null) || true
-  id "$user" >/dev/null 2>&1 || { echo "startup: cannot find the experiment user" >&2; exit 1; }
-  exec sudo -u "$user" -H bash "$src/scripts/cloudlab/startup.sh" "$@"
+# The HDFS daemons must not run as root, and the creator should find the
+# cluster in their own home: run as the experiment's creator. CloudLab runs
+# startup services as geniuser (urn:...+user+<creator> gives the creator).
+me=$(id -un)
+if ((EUID == 0)) || [[ $me == geniuser ]]; then
+  creator=$(geni-get user_urn 2>/dev/null | awk -F+ '{print $NF}') || true
+  if [[ -n $creator && $creator != "$me" ]] && id "$creator" >/dev/null 2>&1; then
+    exec sudo -n -u "$creator" -H bash "$src/scripts/cloudlab/startup.sh" "$@"
+  fi
+  ((EUID != 0)) || { echo "startup: cannot find the experiment's creator" >&2; exit 1; }
 fi
 HOME=$(getent passwd "$(id -un)" | cut -d: -f6)
 export HOME
