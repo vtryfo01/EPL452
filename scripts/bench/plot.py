@@ -2,8 +2,10 @@
 """Plot the benchmark runs of run_benchmarks.sh for the report.
 
     python3 scripts/bench/plot.py results/<run>/results/runs.jsonl --out results/<run>/plots
+    python3 scripts/bench/plot.py --client results/<run>/client.jsonl --out results/<run>/plots
 
-Writes three PNG figures, one column per job (needs matplotlib):
+From the job runs it writes three PNG figures, one column per job (needs
+matplotlib):
 
 * strong-scaling.png: weak-W on 1 .. W workers, the median run time (the
   bar goes from the fastest to the slowest run) and the speedup T(1) / T(n);
@@ -12,11 +14,16 @@ Writes three PNG figures, one column per job (needs matplotlib):
 * go-vs-pyspark.png: every configuration, the runs of both clients as the
   difference from the median of Go.
 
-Go is blue and PySpark orange in all of them. summarize.py prints the same
-numbers as tables.
+From the client benchmark (run_clientbench.sh) it writes client-overhead.png:
+the median time of starting and connecting, of SELECT 1 on an open session,
+and of bringing results of growing size back as rows and as Arrow.
+
+Go is blue and PySpark orange in all of them. summarize.py and
+summarize_client.py print the same numbers as tables.
 """
 
 import argparse
+import math
 import os
 import statistics
 import sys
@@ -26,8 +33,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
-from matplotlib.ticker import FuncFormatter, MaxNLocator  # noqa: E402
+from matplotlib.ticker import FixedLocator, FuncFormatter, MaxNLocator, NullLocator  # noqa: E402
 
+import summarize_client  # noqa: E402
 from summarize import CLIENTS, JOBS, TITLES, load  # noqa: E402
 
 COLORS = {"go": "#2a78d6", "pyspark": "#eb6834"}
@@ -179,15 +187,85 @@ def comparison_figure(runs, jobs, path):
     plt.close(fig)
 
 
-def main():
-    p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    p.add_argument("metrics", help="JSON-lines file written with -metrics")
-    p.add_argument("--out", default=".", help="directory for the figures (default: current)")
-    args = p.parse_args()
-    runs = load(args.metrics)
+def duration(ms):
+    return f"{ms / 1000:.2f} s" if ms >= 1000 else f"{ms:.0f} ms" if ms >= 10 else f"{ms:.1f} ms"
+
+
+def compact(n):
+    for size, suffix in ((10**9, "G"), (10**6, "M"), (10**3, "K")):
+        if n >= size and n % size == 0:
+            return f"{n // size}{suffix}"
+    return f"{n:,}"
+
+
+def median_bars(ax, samples, cs, cases, title):
+    """Horizontal bars of the median of every case, one per client, the first case on top."""
+    ax.grid(False)
+    ax.grid(True, axis="x")
+    height, top = 0.34, 0
+    for y, (case, _) in enumerate(cases):
+        for c in cs:
+            v = samples.get((case, c, 1))
+            if not v:
+                continue
+            m = statistics.median(v)
+            top = max(top, m)
+            yy = y + (0 if len(cs) == 1 else (-1 if c == cs[0] else 1) * (height / 2 + 0.02))
+            ax.barh(yy, m, height=height, color=COLORS[c], zorder=3)
+            ax.annotate(duration(m), (m, yy), xytext=(4, 0), textcoords="offset points", va="center",
+                        color=SECONDARY, fontsize=8)
+    ax.set_yticks(range(len(cases)))
+    ax.set_yticklabels([label for _, label in cases])
+    # room for at least two cases, so that the bars are as thick in every panel
+    center, half = (len(cases) - 1) / 2, max(len(cases), 2) / 2 + 0.05
+    ax.set_ylim(center + half, center - half)
+    ax.set_xlim(0, top * 1.3)
+    ax.tick_params(axis="y", length=0)
+    ax.set_xlabel("median time (ms)")
+    ax.set_title(title)
+
+
+def collect_lines(ax, samples, cs, case, title):
+    """Median time against the size of the result, both on log scales."""
+    sizes = sorted({k[2] for k in samples if k[0] == case})
+    for c in cs:
+        xs = [n for n in sizes if samples.get((case, c, n))]
+        ax.plot(xs, [statistics.median(samples[(case, c, n)]) for n in xs], color=COLORS[c], lw=2,
+                marker=MARKERS[c], ms=SIZES[c], mec="white", mew=1.2, zorder=3)
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.xaxis.set_major_locator(FixedLocator(sizes))
+    ax.xaxis.set_minor_locator(NullLocator())
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: compact(int(round(v)))))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}" if v >= 1 else f"{v:g}"))
+    ax.set_xlim(sizes[0] / 2, sizes[-1] * 2)
+    ax.set_xlabel("rows in the result")
+    ax.set_ylabel("median time (ms)")
+    ax.set_title(title)
+
+
+def client_figure(samples, path):
+    cs = [c for c in CLIENTS if any(k[1] == c for k in samples)]
+    fig, ((start, latency), (rows, arrow)) = plt.subplots(2, 2, figsize=(6.8, 5.8))
+    median_bars(start, samples, cs, [("process", "new process\nto first result"),
+                                     ("connect", "connect and\nfirst query")], "Start-up")
+    median_bars(latency, samples, cs, [("latency", "SELECT 1")], "Query on an open session")
+    collect_lines(rows, samples, cs, "rows", "Result as rows")
+    collect_lines(arrow, samples, cs, "arrow", "Result as Arrow")
+    arrow.sharey(rows)
+    medians = [statistics.median(v) for k, v in samples.items() if k[0] in ("rows", "arrow")]
+    if medians:  # from the decade below the fastest, so that it has a labelled gridline
+        rows.set_ylim(10 ** math.floor(math.log10(min(medians))), max(medians) * 1.5)
+    legend(fig, cs)
+    fig.tight_layout(rect=(0, 0, 1, 0.95), h_pad=2, w_pad=2)
+    fig.savefig(path)
+    plt.close(fig)
+
+
+def job_figures(metrics, out):
+    runs = load(metrics)
     if not runs:
-        sys.exit(f"{args.metrics}: no runs with a workers=<n> label")
-    os.makedirs(args.out, exist_ok=True)
+        sys.exit(f"{metrics}: no runs with a workers=<n> label")
     jobs = [j for j in JOBS if any(k[0] == j for k in runs)]
     written = []
 
@@ -198,20 +276,42 @@ def main():
         strong[job] = sorted((name, w) for name, w in configs if name == f"weak-{top}")
         weak[job] = sorted(((name, w) for name, w in configs if name == f"weak-{w}"), key=lambda p: p[1])
     if all(len(strong[j]) > 1 for j in jobs):
-        path = os.path.join(args.out, "strong-scaling.png")
+        path = os.path.join(out, "strong-scaling.png")
         top = strong[jobs[0]][0][0]
         scaling_figure(runs, jobs, strong, (lambda t1, t, w: t1 / t, lambda w: w, "speedup T(1) / T(n)"),
                        (0, None), f"workers (input {top})", path)
         written.append(path)
     if all(len(weak[j]) > 1 for j in jobs):
-        path = os.path.join(args.out, "weak-scaling.png")
+        path = os.path.join(out, "weak-scaling.png")
         scaling_figure(runs, jobs, weak, (lambda t1, t, w: t1 / t, lambda w: 1, "efficiency T(1) / T(n)"),
                        (0, 1.15), "workers n (input weak-n)", path)
         written.append(path)
     if len(clients(runs)) == 2:
-        path = os.path.join(args.out, "go-vs-pyspark.png")
+        path = os.path.join(out, "go-vs-pyspark.png")
         comparison_figure(runs, jobs, path)
         written.append(path)
+    return written
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    p.add_argument("metrics", nargs="?", help="JSON-lines file of the job runs, written with -metrics")
+    p.add_argument("--client", help="JSON-lines file of run_clientbench.sh")
+    p.add_argument("--out", default=".", help="directory for the figures (default: current)")
+    args = p.parse_args()
+    if not (args.metrics or args.client):
+        p.error("give the job runs, --client or both")
+    os.makedirs(args.out, exist_ok=True)
+    written = []
+    if args.client:
+        samples = summarize_client.load(args.client)
+        if not samples:
+            sys.exit(f"{args.client}: no client benchmark lines")
+        path = os.path.join(args.out, "client-overhead.png")
+        client_figure(samples, path)
+        written.append(path)
+    if args.metrics:
+        written += job_figures(args.metrics, args.out)
     print("\n".join(written) if written else "nothing to plot")
 
 

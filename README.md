@@ -11,6 +11,7 @@ baseline.
 | --- | --- |
 | `cmd/wordcount`, `cmd/invertedindex` | Go programs that run the jobs through Spark Connect |
 | `cmd/verify` | checks a Spark result against the reference implementation |
+| `cmd/clientbench` | measures the client itself: connecting, query round trip, bringing results back |
 | `internal/textproc` | record format and tokenization rules (shared definition) |
 | `internal/jobs` | the Spark Connect query plans; Spark integration tests |
 | `internal/reference` | single-machine WordCount / Inverted Index used as the oracle |
@@ -22,10 +23,10 @@ baseline.
 | `profile.py` | CloudLab profile: `node0` and the workers on one LAN, set up automatically at boot |
 | `scripts/spark` | Spark master, worker and Spark Connect server setup, number of workers |
 | `scripts/cloudlab` | setup at boot (`startup.sh`) or over SSH (`deploy.sh`), cluster check |
-| `baseline` | PySpark baseline: the same jobs, flags and metrics through the PySpark Spark Connect client |
-| `scripts/bench` | PySpark client setup, benchmark driver, summary tables |
+| `baseline` | PySpark baseline: the same jobs, client benchmark, flags and metrics through the PySpark Spark Connect client |
+| `scripts/bench` | PySpark client setup, benchmark drivers, summary tables, figures |
 | `results` | benchmark results, one directory per cluster run |
-| plots, report | to be added |
+| report | to be added |
 
 Documentation: [docs/workloads.md](docs/workloads.md) (semantics, running,
 correctness testing), [docs/datasets-and-hdfs.md](docs/datasets-and-hdfs.md)
@@ -82,6 +83,11 @@ Done:
   each other everywhere; on 3 workers a strong-scaling speedup of 2.48
   (WordCount) and 2.71 (Inverted Index) and a weak-scaling efficiency of 0.86
   and 0.89 (results/cloudlab-2026-11-21, figures in its `plots`).
+* Client overhead (`cmd/clientbench`, 21 November, Spark Connect server on
+  the same machine): a new Go process has its first result after 30 ms
+  against 0.56 s for PySpark, `SELECT 1` takes 8.9 against 14.1 ms, and one
+  million rows come back as rows in 0.47 against 2.55 s (as Arrow 0.14
+  against 0.17 s) (results/local-2026-11-21-client).
 
 Next:
 

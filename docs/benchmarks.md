@@ -1,6 +1,7 @@
 # Benchmarks: strong scaling, weak scaling, Go vs PySpark
 
-Code: `baseline` (PySpark baseline), `scripts/bench` (driver and summary).
+Code: `baseline` (PySpark baseline), `scripts/bench` (drivers, summaries and
+figures), `cmd/clientbench` (client overhead, at the end).
 
 ## PySpark baseline
 
@@ -115,4 +116,52 @@ efficiency, next to the ideal, below; `go-vs-pyspark.png` shows the runs of
 both clients in every configuration as the difference from the median of Go.
 
 Tests (no cluster needed): `python3 scripts/bench/test_summarize.py`,
-`python3 baseline/test_sparkjobs.py`.
+`python3 scripts/bench/test_summarize_client.py`, `python3 baseline/test_sparkjobs.py`.
+
+## Client overhead
+
+The job benchmarks time Spark more than the client: both clients send a plan
+of a few kilobytes and wait. `cmd/clientbench` and `baseline/clientbench.py`
+measure the work of the client itself, with the same SQL queries in both:
+
+| case | what is timed |
+| --- | --- |
+| `process` | a new process that connects and runs `SELECT 1`, timed from outside by the driver, so it includes starting the program (for PySpark, Python and the imports of `pyspark`) |
+| `connect` | inside the program: creating the session and the first `SELECT 1` |
+| `latency` | `SELECT 1` on an open session (submit the SQL, collect its row), 200 times |
+| `rows` | collecting `SELECT concat('term', id) AS term, id AS count FROM range(n)`, a result shaped like WordCount's, as rows (Go `Collect`, PySpark `collect()`), for n = 1,000 to 1,000,000, 5 times each |
+| `arrow` | the same result as an Arrow table (Go `ToArrow`, PySpark `toArrow()`) |
+
+Before `latency` and every size, 3 untimed queries warm the client and the
+server up. `scripts/bench/run_clientbench.sh` runs both clients in turn,
+alternating which goes first, and appends one JSON line per measurement:
+
+```sh
+PYSPARK_VENV=~/pyspark-venv scripts/bench/run_clientbench.sh -o ~/results/client.jsonl  # sc://127.0.0.1:15002
+python3 scripts/bench/summarize_client.py ~/results/client.jsonl --csv ~/results/client-summary.csv
+python3 scripts/bench/plot.py --client ~/results/client.jsonl --out ~/results/plots
+```
+
+| option | meaning | default |
+| --- | --- | --- |
+| `-r` | repetitions (the order of the clients alternates) | 4 |
+| `-p` | new processes timed per repetition and client (`process`) | 5 |
+| `-o` | metrics file (appended to) | `~/results/client.jsonl` |
+| `-- flags` | passed to both clients: `-queries`, `-sizes`, `-samples`, `-cases` | |
+
+The summary has the median and 95th percentile of every case and size for
+each client, and the ratio of the medians. Running it next to the server
+(on one machine, or on `node0`) leaves the network out, so what remains is
+the clients' own work and Spark's fixed cost per query.
+
+Give the server as an IP address (`SPARK_REMOTE`, default
+`sc://127.0.0.1:15002`). For a host name, the Go client connects through
+gRPC-Go's DNS resolver (`grpc.NewClient` in spark-connect-go), which also
+looks up the TXT record `_grpc_config.<host>` before the first query and
+waits for the answer. With a slow DNS server this dominates `connect`: on the
+machine of results/local-2026-11-21-client, `sc://localhost:15002` took a
+median of 0.9 s, the time its DNS server needed to answer that the record
+does not exist, and `sc://127.0.0.1:15002` about 30 ms.
+`GRPC_ENABLE_TXT_SERVICE_CONFIG=false` turns the lookup off. The PySpark
+client (gRPC C core) does not make it. The job benchmarks are not affected:
+they time the job after connecting.
