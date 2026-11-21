@@ -3,9 +3,11 @@
 # PySpark baseline on 1 .. W Spark workers, one JSON line per run appended to
 # a metrics file, then print the tables of summarize.py.
 #
-#   run_benchmarks.sh [-r repeats] [-w W] [-c clients] [-j jobs] [-e experiments] [-o file] [-n]
+#   run_benchmarks.sh [-r repeats] [-s first] [-w W] [-c clients] [-j jobs] [-e experiments] [-o file] [-n]
 #
-#   -r  repetitions of every run [3]
+#   -r  repetitions of every run [4]; keep it even, as the first run of a job
+#       after the workers change is slower and each client should be first equally often
+#   -s  number of the first repetition [1], to add repetitions to a file later
 #   -w  largest number of workers W [all alive workers]
 #   -c  clients [go,pyspark]
 #   -j  jobs [wordcount,invertedindex]
@@ -22,7 +24,7 @@
 # repetitions. A failed run is reported and skipped. It takes hours: run it in
 # the background, e.g.
 #
-#   nohup scripts/bench/run_benchmarks.sh -r 3 > ~/results/bench.log 2>&1 &
+#   nohup scripts/bench/run_benchmarks.sh > ~/results/bench.log 2>&1 &
 #
 # Settings: MASTER [node0], DATA_URI [hdfs://$MASTER:9000/datasets],
 # WARMUP [classics-60, the input of the warm-up job], PYSPARK_VENV [/opt/pyspark].
@@ -35,18 +37,19 @@ WARMUP=${WARMUP:-classics-60}
 VENV=${PYSPARK_VENV:-/opt/pyspark}
 export SPARK_REMOTE=${SPARK_REMOTE:-sc://$MASTER:15002}
 
-repeats=3 max_workers="" clients=go,pyspark jobs=wordcount,invertedindex experiments=strong,weak
+repeats=4 first=1 max_workers="" clients=go,pyspark jobs=wordcount,invertedindex experiments=strong,weak
 out=$HOME/results/runs.jsonl dry=false
-while getopts r:w:c:j:e:o:n opt; do
+while getopts r:s:w:c:j:e:o:n opt; do
   case $opt in
     r) repeats=$OPTARG ;;
+    s) first=$OPTARG ;;
     w) max_workers=$OPTARG ;;
     c) clients=$OPTARG ;;
     j) jobs=$OPTARG ;;
     e) experiments=$OPTARG ;;
     o) out=$OPTARG ;;
     n) dry=true ;;
-    *) sed -n '6,15p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2 ;;
+    *) sed -n '6,17p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2 ;;
   esac
 done
 
@@ -69,6 +72,7 @@ split_list job_list job "$jobs" wordcount invertedindex
 split_list experiment_list experiment "$experiments" strong weak
 ((${#client_list[@]} && ${#job_list[@]} && ${#experiment_list[@]})) || die "nothing to run"
 [[ $repeats =~ ^[1-9][0-9]*$ ]] || die "-r must be a positive number"
+[[ $first =~ ^[1-9][0-9]*$ ]] || die "-s must be a positive number"
 has() { [[ " ${experiment_list[*]} " == *" $1 "* ]]; }
 
 if [[ -z $max_workers ]]; then
@@ -131,7 +135,7 @@ if ! $dry; then
 fi
 
 n=0 failed=0 current=""
-for ((rep = 1; rep <= repeats; rep++)); do
+for ((rep = first; rep < first + repeats; rep++)); do
   order=("${client_list[@]}")
   if ((rep % 2 == 0)); then
     for ((i = 0; i < ${#client_list[@]}; i++)); do order[i]=${client_list[${#client_list[@]} - 1 - i]}; done

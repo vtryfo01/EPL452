@@ -1,0 +1,152 @@
+pipeline: 09:33:04 downloading with 8 parallel fetchers
+downloaded 250 books, 0 missing, 8 already present
+downloaded 248 books, 1 missing, 9 already present
+downloaded 249 books, 2 missing, 7 already present
+downloaded 250 books, 1 missing, 7 already present
+downloaded 250 books, 0 missing, 7 already present
+downloaded 249 books, 1 missing, 7 already present
+downloaded 250 books, 0 missing, 7 already present
+downloaded 247 books, 2 missing, 8 already present
+pipeline: 09:43:30 download done: 2051 books
+pipeline: 09:43:30 base datasets
+cluster_datasets: classics-60: downloading the books into /mydata/datasets/raw/gutenberg
+downloaded 0 books, 0 missing, 60 already present
+downloaded 0 books, 0 missing, 60 already present
+cluster_datasets: classics-60: preprocessing into /mydata/datasets/processed/classics-60
+classics-60: 60 documents, 928771 records, 55.8 MiB in 1 part files -> /mydata/datasets/processed/classics-60.tmp
+cluster_datasets: classics-60: loading into HDFS
+load_hdfs: copying 2 files (58492369 bytes) from /mydata/datasets/processed/classics-60 to /datasets/classics-60
+load_hdfs: copied in 5154 ms
+  Total size:	58492369 B
+  Total files:	2
+  Total blocks (validated):	2 (avg. block size 29246184 B)
+  Average block replication:	2.0
+load_hdfs: OK
+cluster_datasets: classics-60: checking wordcount
+verify: computing the reference wordcount of /mydata/datasets/processed/classics-60
+verify: comparing all 85015 terms
+OK
+cluster_datasets: classics-60: checking invertedindex
+verify: computing the reference invertedindex of /mydata/datasets/processed/classics-60
+verify: comparing all 85015 terms
+OK
+cluster_datasets: sample-2000: downloading the books into /mydata/datasets/raw/gutenberg
+[28/2000] pg1090: not found
+[31/2000] pg1169: not found
+[32/2000] pg1173: not found
+[34/2000] pg1222: not found
+[39/2000] pg1318: not found
+[366/2000] pg12664: not found
+[868/2000] pg32857: not found
+downloaded 0 books, 7 missing, 1993 already present
+Traceback (most recent call last):
+  File "/users/geniuser/EPL452/scripts/data/fetch_gutenberg.py", line 79, in <module>
+    main()
+  File "/users/geniuser/EPL452/scripts/data/fetch_gutenberg.py", line 60, in main
+    data = fetch(args.url_template.format(id=book))
+  File "/users/geniuser/EPL452/scripts/data/fetch_gutenberg.py", line 40, in fetch
+    raise RuntimeError(f"{url}: {err}")
+RuntimeError: https://www.gutenberg.org/cache/epub/1090/pg1090.txt: HTTP Error 503: Service Unavailable
+pipeline: 09:44:54 FAILED: cluster_datasets
+warning: 2 listed books were not downloaded
+pipeline: 09:47:04 pg1090 from xmission: 76276 bytes
+pipeline: 09:47:04 pg1169 from xmission: 82340 bytes
+pipeline: 09:47:04 pg1173 from xmission: 216172 bytes
+pipeline: 09:47:04 pg1222 from xmission: 97680 bytes
+pipeline: 09:47:04 pg1318 from xmission: 369656 bytes
+pipeline: 09:47:04 sample-2000: preprocessing
+warning: 2 listed books were not downloaded
+sample-2000: 1998 documents, 12088635 records, 777.8 MiB in 7 part files -> /mydata/datasets/processed/sample-2000.tmp
+pipeline: {'docs': 1998, 'records': 12088635, 'bytes': 815591537, 'parts': 7}
+pipeline: 09:50:22 sample-2000: loading into HDFS
+load_hdfs: copying 8 files (815872049 bytes) from /mydata/datasets/processed/sample-2000 to /datasets/sample-2000
+load_hdfs: copied in 7524 ms
+  Total size:	815872049 B
+  Total files:	8
+  Total blocks (validated):	8 (avg. block size 101984006 B)
+  Average block replication:	2.0
+load_hdfs: OK
+pipeline: 09:50:38 sample-2000: checking wordcount
+verify: computing the reference wordcount of /mydata/datasets/processed/sample-2000
+verify: totals: spark {Terms:541501 Total:129662667}, reference {Terms:541501 Total:129662667}
+verify: spot-checking 63 terms
+OK
+pipeline: 09:51:10 sample-2000: wordcount verify OK in 32 s
+pipeline: 09:51:10 sample-2000: checking invertedindex
+verify: computing the reference invertedindex of /mydata/datasets/processed/sample-2000
+verify: totals: spark {Terms:541501 Total:11978305}, reference {Terms:541501 Total:11978305}
+verify: spot-checking 63 terms
+OK
+pipeline: 09:51:52 sample-2000: invertedindex verify OK in 42 s
+pipeline: 09:51:52 weak inputs, 2 copies of sample-2000 per worker
+weak_datasets: weak-1: 2 copies of sample-2000
+weak-1: 3996 documents, 1.6 GiB in 13 part files (2 copies of sample-2000 started) -> /mydata/datasets/processed/weak-1
+load_hdfs: copying 14 files (1667451758 bytes) from /mydata/datasets/processed/weak-1 to /datasets/weak-1
+load_hdfs: copied in 10290 ms
+  Total size:	1667451758 B
+  Total files:	14
+  Total blocks (validated):	14 (avg. block size 119103697 B)
+  Average block replication:	2.0
+load_hdfs: OK
+weak_datasets: weak-1: checking wordcount
+verify: computing the reference wordcount of /mydata/datasets/processed/sample-2000
+verify: expecting 2 complete copies of /mydata/datasets/processed/sample-2000
+verify: totals: spark {Terms:541501 Total:259325334}, reference {Terms:541501 Total:259325334}
+verify: spot-checking 63 terms
+OK
+weak_datasets: weak-1: checking invertedindex
+verify: computing the reference invertedindex of /mydata/datasets/processed/sample-2000
+verify: expecting 2 complete copies of /mydata/datasets/processed/sample-2000
+verify: totals: spark {Terms:541501 Total:23956610}, reference {Terms:541501 Total:23956610}
+verify: spot-checking 63 terms
+OK
+weak_datasets: weak-2: 4 copies of sample-2000
+weak-2: 7992 documents, 3.1 GiB in 26 part files (4 copies of sample-2000 started) -> /mydata/datasets/processed/weak-2
+load_hdfs: copying 27 files (3371168981 bytes) from /mydata/datasets/processed/weak-2 to /datasets/weak-2
+load_hdfs: copied in 15186 ms
+  Total size:	3371168981 B
+  Total files:	27
+  Total blocks (validated):	27 (avg. block size 124858110 B)
+  Average block replication:	2.0
+load_hdfs: OK
+weak_datasets: weak-2: checking wordcount
+verify: computing the reference wordcount of /mydata/datasets/processed/sample-2000
+verify: expecting 4 complete copies of /mydata/datasets/processed/sample-2000
+verify: totals: spark {Terms:541501 Total:518650668}, reference {Terms:541501 Total:518650668}
+verify: spot-checking 63 terms
+OK
+weak_datasets: weak-2: checking invertedindex
+verify: computing the reference invertedindex of /mydata/datasets/processed/sample-2000
+verify: expecting 4 complete copies of /mydata/datasets/processed/sample-2000
+verify: totals: spark {Terms:541501 Total:47913220}, reference {Terms:541501 Total:47913220}
+verify: spot-checking 63 terms
+OK
+weak_datasets: weak-3: 6 copies of sample-2000
+weak-3: 11988 documents, 4.7 GiB in 38 part files (6 copies of sample-2000 started) -> /mydata/datasets/processed/weak-3
+load_hdfs: copying 39 files (5074886029 bytes) from /mydata/datasets/processed/weak-3 to /datasets/weak-3
+load_hdfs: copied in 20173 ms
+  Total size:	5074886029 B
+  Total files:	39
+  Total blocks (validated):	39 (avg. block size 130125282 B)
+  Average block replication:	2.0
+load_hdfs: OK
+weak_datasets: weak-3: checking wordcount
+verify: computing the reference wordcount of /mydata/datasets/processed/sample-2000
+verify: expecting 6 complete copies of /mydata/datasets/processed/sample-2000
+verify: totals: spark {Terms:541501 Total:777976002}, reference {Terms:541501 Total:777976002}
+verify: spot-checking 63 terms
+OK
+weak_datasets: weak-3: checking invertedindex
+verify: computing the reference invertedindex of /mydata/datasets/processed/sample-2000
+verify: expecting 6 complete copies of /mydata/datasets/processed/sample-2000
+verify: totals: spark {Terms:541501 Total:71869830}, reference {Terms:541501 Total:71869830}
+verify: spot-checking 63 terms
+OK
+weak_datasets: done
+weak-1: 2 copies, 1590 MiB, hdfs://node0:9000/datasets/weak-1, verify OK: wordcount 39s invertedindex 59s
+weak-2: 4 copies, 3214 MiB, hdfs://node0:9000/datasets/weak-2, verify OK: wordcount 60s invertedindex 104s
+weak-3: 6 copies, 4839 MiB, hdfs://node0:9000/datasets/weak-3, verify OK: wordcount 72s invertedindex 135s
+pipeline: 10:06:09 benchmarks
+pipeline: 11:28:24 benchmarks ended with 0
+pipeline: 11:28:43 repetition 4
+pipeline: 11:56:21 repetition 4 ended with 0

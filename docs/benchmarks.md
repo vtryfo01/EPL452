@@ -37,13 +37,14 @@ On `node0`, after the datasets (`weak-1` to `weak-3`) are in HDFS:
 ```sh
 cd ~/EPL452
 mkdir -p ~/results
-nohup scripts/bench/run_benchmarks.sh -r 3 > ~/results/bench.log 2>&1 &
+nohup scripts/bench/run_benchmarks.sh > ~/results/bench.log 2>&1 &
 tail -f ~/results/bench.log
 ```
 
 | option | meaning | default |
 | --- | --- | --- |
-| `-r` | repetitions of every run | 3 |
+| `-r` | repetitions of every run (keep it even, see Method) | 4 |
+| `-s` | number of the first repetition, to add repetitions to a file later | 1 |
 | `-w` | largest number of workers W | all alive workers |
 | `-c` | clients | `go,pyspark` |
 | `-j` | jobs | `wordcount,invertedindex` |
@@ -53,11 +54,12 @@ tail -f ~/results/bench.log
 
 With 3 workers a repetition is 5 configurations (`weak-3` on 1, 2 and 3
 workers, `weak-1` on 1, `weak-2` on 2; `weak-3` on 3 belongs to both
-experiments and runs once), times 2 jobs and 2 clients: 20 runs. From the
-week-10 sizing timings on `m510` nodes, one client needs about 45 minutes per
-repetition (mostly Inverted Index on one worker), so `-r 3` with both clients
-takes about 4.5 hours. With less time, use `-r 1` or `-r 2`, or `-j wordcount`
-first; runs can be added later to the same file.
+experiments and runs once), times 2 jobs and 2 clients: 20 runs. On `m510`
+nodes with 2 copies of `sample-2000` per worker (`weak_datasets.sh 2`), a
+repetition took 27 minutes (results/cloudlab-2026-11-21); with 5 copies per
+worker it takes about 2.5 times as long, mostly Inverted Index on one worker.
+With less time, run `-j wordcount` first or fewer repetitions; repetitions can
+be added to the same file later, e.g. `-s 3 -r 2` after two.
 
 ## Method
 
@@ -73,6 +75,12 @@ first; runs can be added later to the same file.
 * Repetitions are the outer loop and the order of the two clients alternates
   between them, so slow drifts in the cluster affect both clients alike. The
   summary reports medians.
+* The first run of a job after the workers change is slower than the second
+  (on 3 workers by 3 to 4.5 s for WordCount and 5 to 8 s for Inverted Index
+  on `weak-3`), whichever client it is: most likely the executors' JVMs are still
+  warming up, as the warm-up job is small, may not reach every executor and
+  does not run Inverted Index. The alternating order cancels this out only with
+  an even number of repetitions, so that each client runs first equally often.
 * The inputs fit in the workers' memory (at most 12 GiB over 3 workers with
   62 GB each), so after the first read they come from the page cache. The
   first repetition can therefore be slower; it is kept, and the median of 3

@@ -24,6 +24,7 @@ baseline.
 | `scripts/cloudlab` | setup at boot (`startup.sh`) or over SSH (`deploy.sh`), cluster check |
 | `baseline` | PySpark baseline: the same jobs, flags and metrics through the PySpark Spark Connect client |
 | `scripts/bench` | PySpark client setup, benchmark driver, summary tables |
+| `results` | benchmark results, one directory per cluster run |
 | plots, report | to be added |
 
 Documentation: [docs/workloads.md](docs/workloads.md) (semantics, running,
@@ -76,8 +77,13 @@ Done:
   tested against the same expected outputs, and a benchmark driver for strong
   scaling, weak scaling and Go vs PySpark with a summary of the results
   (docs/benchmarks.md).
+* First cluster benchmark (21 November, 4 `m510` nodes, 4 repetitions, 80
+  runs, `weak-n` = 2n copies of `sample-2000`): Go and PySpark within 2% of
+  each other everywhere; on 3 workers a strong-scaling speedup of 2.48
+  (WordCount) and 2.71 (Inverted Index) and a weak-scaling efficiency of 0.86
+  and 0.89 (results/cloudlab-2026-11-21).
 
 Next:
 
-* Strong scaling (`weak-3` on 1 to 3 workers), weak scaling (`weak-n` on *n*
-  workers) and Go vs PySpark runs on the cluster, then the plots.
+* The plots and the report; if there is cluster time, the same runs with the
+  planned 5 copies per worker.

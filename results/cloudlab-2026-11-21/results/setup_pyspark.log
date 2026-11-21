@@ -1,0 +1,8 @@
+setup_pyspark: installing python3-venv
+setup_pyspark: installing pyspark-client==4.0.5 into /opt/pyspark
+setup_pyspark: testing the baseline on hdfs://node0:9000/datasets/corpus through sc://node0:15002
+Ran 5 tests in 3.477s
+
+OK
+setup_pyspark: OK: run the baseline with /opt/pyspark/bin/python baseline/wordcount.py ...
+EXIT 0

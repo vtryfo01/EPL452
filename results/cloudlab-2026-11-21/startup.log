@@ -1,0 +1,126 @@
+startup: 2026-11-21T09:25:53Z starting as master (3 workers, datasets: all)
+startup: 2026-11-21T09:25:53Z running: copying the repository to /users/geniuser/EPL452
+startup: 2026-11-21T09:25:53Z running: installing Java
+startup: 2026-11-21T09:26:26Z running: starting the HDFS NameNode and the Spark master
+setup_hdfs: downloading https://dlcdn.apache.org/hadoop/common/hadoop-3.4.3/hadoop-3.4.3.tar.gz
+setup_hdfs: unpacking /tmp/hadoop-3.4.3.tar.gz into /opt/hadoop
+setup_hdfs: formatting the NameNode
+setup_hdfs: starting namenode
+setup_hdfs: NameNode up: Safe mode is OFF
+setup_hdfs: done: namenode on node0.spark.ucy-coast-teach-pg0.utah.cloudlab.us, fs.defaultFS=hdfs://node0:9000
+setup_spark: downloading https://dlcdn.apache.org/spark/spark-4.0.5/spark-4.0.5-bin-hadoop3.tgz
+starting org.apache.spark.deploy.master.Master, logging to /mydata/spark/logs/spark-geniuser-org.apache.spark.deploy.master.Master-1-node0.spark.ucy-coast-teach-pg0.utah.cloudlab.us.out
+starting org.apache.spark.sql.connect.service.SparkConnectServer, logging to /mydata/spark/logs/spark-geniuser-org.apache.spark.sql.connect.service.SparkConnectServer-1-node0.spark.ucy-coast-teach-pg0.utah.cloudlab.us.out
+setup_spark: done: master on 10.10.1.1
+startup: 2026-11-21T09:27:48Z running: building the Go programs
+go: downloading github.com/apache/spark-connect-go v0.1.1-0.20250826122459-0e3d565b63e6
+go: downloading github.com/apache/arrow-go/v18 v18.4.0
+go: downloading github.com/google/uuid v1.6.0
+go: downloading github.com/go-errors/errors v1.5.1
+go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20250707201910-8d1bb00bc6a7
+go: downloading google.golang.org/grpc v1.75.0
+go: downloading google.golang.org/protobuf v1.36.7
+go: downloading golang.org/x/oauth2 v0.30.0
+go: downloading golang.org/x/sys v0.33.0
+go: downloading golang.org/x/net v0.41.0
+go: downloading cloud.google.com/go/compute/metadata v0.7.0
+go: downloading golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
+go: downloading github.com/google/flatbuffers v25.2.10+incompatible
+go: downloading github.com/klauspost/compress v1.18.0
+go: downloading github.com/pierrec/lz4/v4 v4.1.22
+go: downloading github.com/goccy/go-json v0.10.5
+go: downloading golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
+go: downloading github.com/zeebo/xxh3 v1.0.2
+go: downloading github.com/klauspost/cpuid/v2 v2.2.11
+go: downloading golang.org/x/text v0.26.0
+startup: 2026-11-21T09:28:40Z running: waiting for 3 DataNodes and Spark workers
+startup: 2026-11-21T09:28:42Z running: checking the cluster
+check_hdfs: 3 live DataNodes
+DFS Remaining: 170387054592 (158.69 GB)
+Name: 10.10.1.2:9866 (node1-lan)
+Hostname: 10.10.1.2
+DFS Remaining: 56795676672 (52.90 GB)
+Name: 10.10.1.3:9866 (node2-lan)
+Hostname: 10.10.1.3
+DFS Remaining: 56795688960 (52.90 GB)
+Name: 10.10.1.4:9866 (node3-lan)
+Hostname: 10.10.1.4
+DFS Remaining: 56795688960 (52.90 GB)
+Safe mode is OFF
+check_hdfs: OK: hdfs://node0:9000 is writable and readable
+load_hdfs: copying 3 files (409 bytes) from /users/geniuser/EPL452/testdata/small/corpus to /datasets/corpus
+load_hdfs: copied in 5230 ms
+  Total size:	409 B
+  Total files:	3
+  Total blocks (validated):	3 (avg. block size 136 B)
+  Average block replication:	2.0
+load_hdfs: OK
+check_cluster: 3 Spark workers alive
+wordcount: collect of hdfs://node0:9000/datasets/corpus took 9.89s
+check_cluster: wordcount matches the expected output
+invertedindex: collect of hdfs://node0:9000/datasets/corpus took 1.55s
+check_cluster: invertedindex matches the expected output
+check_cluster: executors on all 3 workers
+check_cluster: OK
+startup: 2026-11-21T09:29:24Z running: preparing classics-60 and sample-2000
+cluster_datasets: classics-60: downloading the books into /mydata/datasets/raw/gutenberg
+[1/60] pg1342: 772386 bytes
+[2/60] pg84: 448885 bytes
+[3/60] pg11: 174311 bytes
+[4/60] pg1661: 607606 bytes
+[5/60] pg2701: 1276315 bytes
+[6/60] pg98: 807197 bytes
+[7/60] pg74: 434357 bytes
+[8/60] pg76: 622460 bytes
+[9/60] pg345: 890348 bytes
+[10/60] pg1232: 308019 bytes
+[11/60] pg174: 465814 bytes
+[12/60] pg844: 141840 bytes
+[13/60] pg5200: 141933 bytes
+[14/60] pg2600: 3359610 bytes
+[15/60] pg1400: 1058204 bytes
+[16/60] pg46: 182250 bytes
+[17/60] pg2554: 1202773 bytes
+[18/60] pg1260: 1084803 bytes
+[19/60] pg768: 693819 bytes
+[20/60] pg158: 933709 bytes
+[21/60] pg161: 712852 bytes
+[22/60] pg105: 497555 bytes
+[23/60] pg120: 399873 bytes
+[24/60] pg43: 163495 bytes
+[25/60] pg36: 366624 bytes
+[26/60] pg35: 204384 bytes
+[27/60] pg1184: 2785469 bytes
+[28/60] pg135: 3369207 bytes
+[29/60] pg2591: 560164 bytes
+[30/60] pg1497: 1244165 bytes
+[31/60] pg3207: 1254939 bytes
+[32/60] pg4300: 1586344 bytes
+[33/60] pg1727: 717782 bytes
+[34/60] pg6130: 1161373 bytes
+[35/60] pg2814: 405706 bytes
+[36/60] pg16328: 300462 bytes
+[37/60] pg205: 667957 bytes
+[38/60] pg219: 237074 bytes
+[39/60] pg730: 955858 bytes
+[40/60] pg766: 2033321 bytes
+[41/60] pg236: 303640 bytes
+[42/60] pg113: 475315 bytes
+[43/60] pg16: 288769 bytes
+[44/60] pg55: 237232 bytes
+[45/60] pg514: 1071398 bytes
+[46/60] pg1257: 1388843 bytes
+[47/60] pg996: 2391678 bytes
+[48/60] pg28054: 2039141 bytes
+[49/60] pg2852: 388057 bytes
+[50/60] pg244: 268777 bytes
+[51/60] pg1399: 2067952 bytes
+[52/60] pg2680: 425304 bytes
+[53/60] pg132: 342105 bytes
+Terminated
+startup: 2026-11-21T09:32:48Z FAILED: preparing classics-60 and sample-2000 (exit 143)
+[54/60] pg3300: 2468951 bytes
+[55/60] pg1080: 39645 bytes
+[56/60] pg25344: 526324 bytes
+[57/60] pg2500: 242505 bytes
+[58/60] pg4363: 408794 bytes

@@ -7,3 +7,5 @@ data/processed/
 *.exe
 *.jsonl
 __pycache__/
+# but keep the benchmark results
+!results/**/*.jsonl
